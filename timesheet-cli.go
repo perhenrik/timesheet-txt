@@ -44,7 +44,12 @@ func main() {
 }
 
 func usage(name string) {
-	fmt.Println("Usage: " + path.Base(name) + " add [date] duration task")
+	commandName := path.Base(name)
+	fmt.Println("Usage:")
+	fmt.Println("\t" + commandName + " add [date] duration task")
+	fmt.Println("\t" + commandName + " list")
+	fmt.Println("\t" + commandName + " delete [number]")
+	fmt.Println("\t" + commandName + " tidy")
 }
 
 func add(arguments []string) {

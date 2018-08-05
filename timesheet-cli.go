@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/perhenrik/timesheet-txt/file"
@@ -30,6 +31,13 @@ func main() {
 		list()
 	} else if os.Args[1] == "tidy" {
 		tidy()
+	} else if os.Args[1] == "delete" {
+		index, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			usage(os.Args[0])
+			return
+		}
+		delete(index)
 	} else {
 		usage(os.Args[0])
 	}
@@ -51,6 +59,17 @@ func list() {
 	for _, workItem := range workItems {
 		fmt.Printf("%4d: %s %s %s\n", workItem.Index, workItem.Date, workItem.Duration, workItem.Task)
 	}
+}
+
+func delete(index int) {
+	index--
+	workTimes := file.ReadFile()
+	if index < 0 || index > len(workTimes)-1 {
+		return
+	}
+	workTimes = append(workTimes[:index], workTimes[index+1:]...)
+	fmt.Println(workTimes)
+	file.WriteFile(workTimes)
 }
 
 func tidy() {

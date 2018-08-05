@@ -2,7 +2,6 @@ package file
 
 import (
 	"bufio"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,9 +13,7 @@ import (
 func timesheetFile() string {
 	filename := ".timesheet.txt"
 	homeDirectory, err := homedir.Dir()
-	if err != nil {
-		panic(err)
-	}
+	check(err)
 	return filepath.Join(homeDirectory, filename)
 }
 
@@ -29,9 +26,7 @@ func writeWorkTime(file *os.File, workTime model.WorkTime) {
 // AppendToFile append a work time item to the timesheet file
 func AppendToFile(workTime model.WorkTime) {
 	file, err := os.OpenFile(timesheetFile(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		panic(err)
-	}
+	check(err)
 
 	defer file.Close()
 
@@ -41,9 +36,8 @@ func AppendToFile(workTime model.WorkTime) {
 // ReadFile reads in and parses the default timesheet file
 func ReadFile() (workTimes []model.WorkTime) {
 	file, err := os.OpenFile(timesheetFile(), os.O_RDONLY|os.O_CREATE, 0600)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
+
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
@@ -56,23 +50,24 @@ func ReadFile() (workTimes []model.WorkTime) {
 			workTimes = append(workTimes, workTime)
 		}
 	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
+	check(scanner.Err())
 
 	return workTimes
 }
 
 // WriteFile overwrites the default timesheet file with the values in the supplied array
 func WriteFile(workTimes []model.WorkTime) {
-	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		log.Fatal(err)
-	}
+	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	check(err)
 	defer file.Close()
 
 	for _, workTime := range workTimes {
 		writeWorkTime(file, workTime)
+	}
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
 	}
 }

@@ -49,9 +49,13 @@ func usage(name string) {
 
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime := model.CreateFromString(s)
-	file.AppendToFile(workTime)
-	color.Yellow("Adding %s", workTime)
+	workTime, err := model.CreateFromString(s)
+	if err != nil {
+		color.Red(err.Error())
+	} else {
+		file.AppendToFile(workTime)
+		color.Yellow("Adding %s", workTime)
+	}
 }
 
 func list() {
@@ -68,7 +72,6 @@ func delete(index int) {
 		return
 	}
 	workTimes = append(workTimes[:index], workTimes[index+1:]...)
-	fmt.Println(workTimes)
 	file.WriteFile(workTimes)
 }
 

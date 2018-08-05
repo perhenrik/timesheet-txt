@@ -44,9 +44,11 @@ func ReadFile() (workTimes []model.WorkTime) {
 	for scanner.Scan() {
 		if strings.TrimSpace(scanner.Text()) != "" {
 			index++
-			workTime := model.CreateFromString(scanner.Text())
-			workTime.Index = index
-			workTimes = append(workTimes, workTime)
+			workTime, err := model.CreateFromString(scanner.Text())
+			if err == nil {
+				workTime.Index = index
+				workTimes = append(workTimes, workTime)
+			}
 		}
 	}
 	check(scanner.Err())

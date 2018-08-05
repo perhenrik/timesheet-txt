@@ -18,9 +18,8 @@ func timesheetFile() string {
 }
 
 func writeWorkTime(file *os.File, workTime model.WorkTime) {
-	if _, err := file.WriteString(workTime.Date + " " + workTime.Duration + " " + workTime.Task + "\n"); err != nil {
-		panic(err)
-	}
+	_, err := file.WriteString(workTime.Date + " " + workTime.Duration + " " + workTime.Task + "\n")
+	check(err)
 }
 
 // AppendToFile append a work time item to the timesheet file

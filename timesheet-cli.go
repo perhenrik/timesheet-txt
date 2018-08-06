@@ -112,7 +112,7 @@ func help() {
 		    Deletes the work identified by number. This number can found using the list action.
 		Arguments:
 		    number: the work item to delere
-		
+
 	tidy
 	    Description:
 		    Cleans up the timesheet file. Note: this action will overwrite your timesheetfile.
@@ -122,6 +122,6 @@ func help() {
 			Prints a summarized time report.
 		Arguments
 			date:   the date wich is the end of the report period, defaults to now.
-			period: the duration of the report, defaults to 5 days (5d)
+			period: the duration of the report counting backwords from date. Defaults to 5 days (5d)
   `)
 }

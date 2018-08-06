@@ -1,4 +1,4 @@
-package model
+package file
 
 import (
 	"errors"
@@ -7,19 +7,19 @@ import (
 	"time"
 )
 
-// WorkTime is a stuct holding information about the time worked.
-type WorkTime struct {
+// Line is a stuct holding information about the time worked.
+type Line struct {
 	Index    int
 	Date     string
 	Duration string
 	Task     string
 }
 
-// CreateFromString parses a string and returns a new WorkTime.
+// CreateLineFromString parses a string and returns a new WorkTime.
 // The input string must be separated by spaces.
-func CreateFromString(s string) (worktime WorkTime, err error) {
+func CreateLineFromString(s string) (worktime Line, err error) {
 	elements := strings.Split(s, " ")
-	workTime := WorkTime{
+	Line := Line{
 		Date:     time.Now().Format("2006-01-02"),
 		Duration: "1h",
 		Task:     "foobar"}
@@ -33,16 +33,16 @@ func CreateFromString(s string) (worktime WorkTime, err error) {
 		if dateMatcher.MatchString(element) {
 			_, err := time.Parse("2006-01-02", element)
 			if err == nil {
-				workTime.Date = element
+				Line.Date = element
 				modified = true
 			}
 
 		} else if durationMatcher.MatchString(element) {
-			workTime.Duration = element
+			Line.Duration = element
 			modified = true
 
 		} else {
-			workTime.Task = element
+			Line.Task = element
 		}
 	}
 
@@ -50,5 +50,5 @@ func CreateFromString(s string) (worktime WorkTime, err error) {
 		err = errors.New("Could not parse \"" + s + "\"")
 	}
 
-	return workTime, err
+	return Line, err
 }

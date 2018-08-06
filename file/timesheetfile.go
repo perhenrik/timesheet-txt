@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/perhenrik/timesheet-txt/model"
 )
 
 func timesheetFile() string {
@@ -17,23 +16,23 @@ func timesheetFile() string {
 	return filepath.Join(homeDirectory, filename)
 }
 
-func writeWorkTime(file *os.File, workTime model.WorkTime) {
-	_, err := file.WriteString(workTime.Date + " " + workTime.Duration + " " + workTime.Task + "\n")
+func writeLine(file *os.File, line Line) {
+	_, err := file.WriteString(line.Date + " " + line.Duration + " " + line.Task + "\n")
 	check(err)
 }
 
 // AppendToFile append a work time item to the timesheet file
-func AppendToFile(workTime model.WorkTime) {
+func AppendToFile(line Line) {
 	file, err := os.OpenFile(timesheetFile(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	check(err)
 
 	defer file.Close()
 
-	writeWorkTime(file, workTime)
+	writeLine(file, line)
 }
 
 // ReadFile reads in and parses the default timesheet file
-func ReadFile() (workTimes []model.WorkTime) {
+func ReadFile() (lines []Line) {
 	file, err := os.OpenFile(timesheetFile(), os.O_RDONLY|os.O_CREATE, 0600)
 	check(err)
 
@@ -44,26 +43,26 @@ func ReadFile() (workTimes []model.WorkTime) {
 	for scanner.Scan() {
 		if strings.TrimSpace(scanner.Text()) != "" {
 			index++
-			workTime, err := model.CreateFromString(scanner.Text())
+			line, err := CreateLineFromString(scanner.Text())
 			if err == nil {
-				workTime.Index = index
-				workTimes = append(workTimes, workTime)
+				line.Index = index
+				lines = append(lines, line)
 			}
 		}
 	}
 	check(scanner.Err())
 
-	return workTimes
+	return lines
 }
 
 // WriteFile overwrites the default timesheet file with the values in the supplied array
-func WriteFile(workTimes []model.WorkTime) {
+func WriteFile(lines []Line) {
 	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	check(err)
 	defer file.Close()
 
-	for _, workTime := range workTimes {
-		writeWorkTime(file, workTime)
+	for _, line := range lines {
+		writeLine(file, line)
 	}
 }
 

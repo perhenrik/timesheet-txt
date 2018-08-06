@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/perhenrik/timesheet-txt/file"
-	"github.com/perhenrik/timesheet-txt/model"
 
 	"github.com/fatih/color"
 )
@@ -50,7 +49,7 @@ func main() {
 
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := model.CreateFromString(s)
+	workTime, err := file.CreateFromString(s)
 	if err != nil {
 		color.Red(err.Error())
 	} else {
@@ -79,6 +78,14 @@ func delete(index int) {
 func tidy() {
 	workItems := file.ReadFile()
 	file.WriteFile(workItems)
+}
+
+func report() {
+	//workTimes := file.ReadFile()
+	//reportItems := report.Create(workTimes, time.Now(), "5d")
+	//for reportItem := range reportItems {
+	//	fmt.PrintLn(reportItem.Date, reportItem.Task, reportItem.TotalDuration)
+	//}
 }
 
 func usage() {
@@ -119,7 +126,7 @@ func help() {
 		
 	report [date] [period]
 		Description:
-			Prints a summarized time report.
+			Prints a summarized time report. All tasks on the same date are summarized.
 		Arguments
 			date:   the date wich is the end of the report period, defaults to now.
 			period: the duration of the report counting backwords from date. Defaults to 5 days (5d)

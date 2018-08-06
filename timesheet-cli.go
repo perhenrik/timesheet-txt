@@ -18,10 +18,13 @@ type timeSlice struct {
 	offsetDays string
 }
 
+var commandName = ""
+
 func main() {
+	commandName = path.Base(os.Args[0])
 
 	if len(os.Args) < 2 {
-		usage(os.Args[0])
+		usageWithHelp()
 		return
 	}
 
@@ -34,22 +37,15 @@ func main() {
 	} else if os.Args[1] == "delete" {
 		index, err := strconv.Atoi(os.Args[2])
 		if err != nil {
-			usage(os.Args[0])
+			usageWithHelp()
 			return
 		}
 		delete(index)
+	} else if os.Args[1] == "help" {
+		help()
 	} else {
-		usage(os.Args[0])
+		usageWithHelp()
 	}
-}
-
-func usage(name string) {
-	commandName := path.Base(name)
-	fmt.Println("Usage:")
-	fmt.Println("\t" + commandName + " add [date] duration task")
-	fmt.Println("\t" + commandName + " list")
-	fmt.Println("\t" + commandName + " delete [number]")
-	fmt.Println("\t" + commandName + " tidy")
 }
 
 func add(arguments []string) {
@@ -83,4 +79,49 @@ func delete(index int) {
 func tidy() {
 	workItems := file.ReadFile()
 	file.WriteFile(workItems)
+}
+
+func usage() {
+	fmt.Println("Usage: " + commandName + " action [parameters]")
+}
+
+func usageWithHelp() {
+	usage()
+	fmt.Println("Try '" + commandName + " help' for more information.")
+}
+
+func help() {
+	usage()
+	fmt.Println()
+	fmt.Println(`Actions:
+
+	add [date] duration task
+	    Description:
+	        Appends a new task with the given duration to the timesheet file
+		Arguments:
+            duration: <number>[h|m], examples: 1h (one hour), 30m (30 minutes)
+            task: free text string
+	
+	list
+	    Description:
+	        Lists all work registered, more or less a cat of the timesheet file.
+            All lines are prepended with a number wich can be used in other action, ie. delete.
+	
+	delete [number]
+	    Description:
+		    Deletes the work identified by number. This number can found using the list action.
+		Arguments:
+		    number: the work item to delere
+		
+	tidy
+	    Description:
+		    Cleans up the timesheet file. Note: this action will overwrite your timesheetfile.
+		
+	report [date] [period]
+		Description:
+			Prints a summarized time report.
+		Arguments
+			date:   the date wich is the end of the report period, defaults to now.
+			period: the duration of the report, defaults to 5 days (5d)
+  `)
 }

@@ -49,7 +49,7 @@ func main() {
 
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := file.CreateFromString(s)
+	workTime, err := file.CreateLineFromString(s)
 	if err != nil {
 		color.Red(err.Error())
 	} else {

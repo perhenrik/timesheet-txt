@@ -17,7 +17,7 @@ func timesheetFile() string {
 }
 
 func writeLine(file *os.File, line Line) {
-	_, err := file.WriteString(line.Date + " " + line.Duration + " " + line.Task + "\n")
+	_, err := file.WriteString(line.Time.Format("2006-01-02") + " " + line.Duration + " " + line.Task + "\n")
 	check(err)
 }
 

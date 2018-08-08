@@ -6,10 +6,11 @@ import (
 	"path"
 	"strconv"
 	"strings"
-
-	"github.com/perhenrik/timesheet-txt/file"
+	"time"
 
 	"github.com/fatih/color"
+	"github.com/perhenrik/timesheet-txt/file"
+	"github.com/perhenrik/timesheet-txt/report"
 )
 
 type timeSlice struct {
@@ -29,6 +30,8 @@ func main() {
 
 	if os.Args[1] == "add" {
 		add(os.Args[2:])
+	} else if os.Args[1] == "report" {
+		reports()
 	} else if os.Args[1] == "list" {
 		list()
 	} else if os.Args[1] == "tidy" {
@@ -61,7 +64,7 @@ func add(arguments []string) {
 func list() {
 	workItems := file.ReadFile()
 	for _, workItem := range workItems {
-		fmt.Printf("%4d: %s %s %s\n", workItem.Index, workItem.Date, workItem.Duration, workItem.Task)
+		fmt.Printf("%4d: %s %s %s\n", workItem.Index, workItem.Time.Format("2006-01-02"), workItem.Duration, workItem.Task)
 	}
 }
 
@@ -80,12 +83,12 @@ func tidy() {
 	file.WriteFile(workItems)
 }
 
-func report() {
-	//workTimes := file.ReadFile()
-	//reportItems := report.Create(workTimes, time.Now(), "5d")
-	//for reportItem := range reportItems {
-	//	fmt.PrintLn(reportItem.Date, reportItem.Task, reportItem.TotalDuration)
-	//}
+func reports() {
+	workItems := file.ReadFile()
+	reportItems := report.Create(workItems, time.Now(), "5d")
+	for _, reportItem := range reportItems {
+		fmt.Printf("%12s%20s %3s\n", reportItem.Date.Format("2006-02-02"), reportItem.Task, strconv.Itoa(reportItem.Hours))
+	}
 }
 
 func usage() {

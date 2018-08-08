@@ -10,17 +10,17 @@ import (
 // Line is a stuct holding information about the time worked.
 type Line struct {
 	Index    int
-	Date     string
+	Time     time.Time
 	Duration string
 	Task     string
 }
 
 // CreateLineFromString parses a string and returns a new WorkTime.
 // The input string must be separated by spaces.
-func CreateLineFromString(s string) (worktime Line, err error) {
+func CreateLineFromString(s string) (line Line, err error) {
 	elements := strings.Split(s, " ")
-	Line := Line{
-		Date:     time.Now().Format("2006-01-02"),
+	line = Line{
+		Time:     time.Now(),
 		Duration: "1h",
 		Task:     "foobar"}
 
@@ -31,18 +31,18 @@ func CreateLineFromString(s string) (worktime Line, err error) {
 
 	for _, element := range elements {
 		if dateMatcher.MatchString(element) {
-			_, err := time.Parse("2006-01-02", element)
+			time, err := time.Parse("2006-01-02", element)
 			if err == nil {
-				Line.Date = element
+				line.Time = time
 				modified = true
 			}
 
 		} else if durationMatcher.MatchString(element) {
-			Line.Duration = element
+			line.Duration = element
 			modified = true
 
 		} else {
-			Line.Task = element
+			line.Task = element
 		}
 	}
 
@@ -50,5 +50,5 @@ func CreateLineFromString(s string) (worktime Line, err error) {
 		err = errors.New("Could not parse \"" + s + "\"")
 	}
 
-	return Line, err
+	return line, err
 }

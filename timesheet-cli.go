@@ -85,10 +85,25 @@ func tidy() {
 
 func reports() {
 	workItems := file.ReadFile()
-	reportItems := report.Create(workItems, time.Now(), "5d")
+	reportItems := report.Create(workItems, time.Now(), "7d")
+
+	format := "%12s%20s%4s%5s%5s\n"
+	previousDate := ""
+	dailyTotal := 0
+	total := 0
 	for _, reportItem := range reportItems {
-		fmt.Printf("%12s%20s %3s\n", reportItem.Date.Format("2006-02-02"), reportItem.Task, strconv.Itoa(reportItem.Hours))
+		currentDate := reportItem.Date.Format("2006-02-02")
+		if previousDate != currentDate && dailyTotal != 0 {
+			fmt.Printf(format, "", "", "", strconv.Itoa(dailyTotal), "")
+			previousDate = currentDate
+			dailyTotal = 0
+		}
+		dailyTotal += reportItem.Hours
+		total += reportItem.Hours
+		fmt.Printf(format, currentDate, reportItem.Task, strconv.Itoa(reportItem.Hours), "", "")
 	}
+	fmt.Printf(format, "", "", "", strconv.Itoa(dailyTotal), "")
+	fmt.Printf(format, "", "", "", "", strconv.Itoa(total))
 }
 
 func usage() {

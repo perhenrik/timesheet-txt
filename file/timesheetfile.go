@@ -26,7 +26,10 @@ func AppendToFile(line Line) {
 	file, err := os.OpenFile(timesheetFile(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	check(err)
 
-	defer file.Close()
+	defer func() {
+		cerr := file.Close()
+		check(cerr)
+	}()
 
 	writeLine(file, line)
 }
@@ -36,7 +39,10 @@ func ReadFile() (lines []Line) {
 	file, err := os.OpenFile(timesheetFile(), os.O_RDONLY|os.O_CREATE, 0600)
 	check(err)
 
-	defer file.Close()
+	defer func() {
+		cerr := file.Close()
+		check(cerr)
+	}()
 
 	scanner := bufio.NewScanner(file)
 	index := 0
@@ -59,7 +65,11 @@ func ReadFile() (lines []Line) {
 func WriteFile(lines []Line) {
 	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	check(err)
-	defer file.Close()
+
+	defer func() {
+		cerr := file.Close()
+		check(cerr)
+	}()
 
 	for _, line := range lines {
 		writeLine(file, line)

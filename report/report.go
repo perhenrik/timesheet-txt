@@ -1,6 +1,8 @@
 package report
 
 import (
+	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -19,7 +21,13 @@ func Create(workItems []file.Line, endTime time.Time, taskDuration string) (item
 	startTime := endTime.Add(time.Hour * -time.Duration(hours))
 	for _, line := range workItems {
 		if dateInRange(line.Time, startTime, endTime) {
-			hours, _ := ParseDuration(line.Duration)
+			hours, err := ParseDuration(line.Duration)
+			if err != nil {
+				_, cerr := fmt.Fprintln(os.Stderr, err)
+				if cerr != nil {
+					panic(cerr)
+				}
+			}
 			itemMap[line.Time.Format("2006-01-02")+"^"+line.Task] += hours
 		}
 	}
@@ -60,7 +68,10 @@ func stripTime(t time.Time) (newTime time.Time) {
 func splitKey(key string) (keyTime time.Time, keyTask string) {
 	items := strings.Split(key, "^")
 	if len(items) == 2 {
-		keyTime, _ = time.Parse("2006-01-02", items[0])
+		itemDate, err := time.Parse("2006-01-02", items[0])
+		if err == nil {
+			keyTime = itemDate
+		}
 		keyTask = items[1]
 	}
 	return

@@ -17,8 +17,8 @@ $(GOMETALINTER):
 lint: $(GOMETALINTER)
 	gometalinter ./... --vendor
 
-BINARY := mytool
-VERSION ?= vlatest
+BINARY := timesheet
+VERSION ?= 0.1
 PLATFORMS := windows linux darwin
 os = $(word 1, $@)
 

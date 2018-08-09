@@ -13,11 +13,6 @@ import (
 	"github.com/perhenrik/timesheet-txt/report"
 )
 
-type timeSlice struct {
-	date       string
-	offsetDays string
-}
-
 var commandName = ""
 
 func main() {
@@ -120,7 +115,7 @@ func padLeft(str, pad string, lenght int) string {
 	for {
 		str = pad + str
 		if len(str) > lenght {
-			return str[(len(str) - lenght):len(str)]
+			return str[(len(str) - lenght):]
 		}
 	}
 }

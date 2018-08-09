@@ -15,7 +15,7 @@ func Create(workItems []file.Line, endTime time.Time, taskDuration string) (item
 		return
 	}
 
-	itemMap := make(map[string]int)
+	itemMap := make(map[string]float64)
 	startTime := endTime.Add(time.Hour * -time.Duration(hours))
 	for _, line := range workItems {
 		if dateInRange(line.Time, startTime, endTime) {

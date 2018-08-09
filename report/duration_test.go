@@ -9,14 +9,14 @@ func TestParseDuration(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		wantHours int
+		wantHours float64
 		wantErr   bool
 	}{
-		{name: "2hours", args: args{duration: "2h"}, wantHours: 2, wantErr: false},
-		{name: "1day", args: args{duration: "1d"}, wantHours: 24, wantErr: false},
-		{name: "2weeks", args: args{duration: "2w"}, wantHours: 336, wantErr: false},
-		{name: "1month", args: args{duration: "1m"}, wantHours: 5040, wantErr: false},
-		{name: "invalidDuration", args: args{duration: "2e"}, wantHours: 0, wantErr: true},
+		{name: "2hours", args: args{duration: "2h"}, wantHours: 2.0, wantErr: false},
+		{name: "1day", args: args{duration: "1.0d"}, wantHours: 24.0, wantErr: false},
+		{name: "2weeks", args: args{duration: "2w"}, wantHours: 336.0, wantErr: false},
+		{name: "1month", args: args{duration: "1m"}, wantHours: 5040.0, wantErr: false},
+		{name: "invalidDuration", args: args{duration: "2e"}, wantHours: 0.0, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -25,7 +25,7 @@ func CreateLineFromString(s string) (line Line, err error) {
 		Task:     "foobar"}
 
 	dateMatcher := regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}$")
-	durationMatcher := regexp.MustCompile("^\\d{1,2}[hm]$")
+	durationMatcher := regexp.MustCompile("^\\d{1,2}(\\.\\d){0,1}[hm]$")
 
 	modified := false
 
@@ -36,7 +36,6 @@ func CreateLineFromString(s string) (line Line, err error) {
 				line.Time = time
 				modified = true
 			}
-
 		} else if durationMatcher.MatchString(element) {
 			line.Duration = element
 			modified = true

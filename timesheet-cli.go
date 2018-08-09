@@ -31,7 +31,7 @@ func main() {
 	if os.Args[1] == "add" {
 		add(os.Args[2:])
 	} else if os.Args[1] == "report" {
-		reports()
+		createReport()
 	} else if os.Args[1] == "list" {
 		list()
 	} else if os.Args[1] == "tidy" {
@@ -83,27 +83,54 @@ func tidy() {
 	file.WriteFile(workItems)
 }
 
-func reports() {
+func createReport() {
 	workItems := file.ReadFile()
-	reportItems := report.Create(workItems, time.Now(), "7d")
+	reportItems := report.Create(workItems, time.Now(), "5d")
 
-	format := "%12s%20s%4s%5s%5s\n"
+	format := "%12s%31s%4s%5s%5s\n"
 	previousDate := ""
 	dailyTotal := 0
 	total := 0
 	for _, reportItem := range reportItems {
 		currentDate := reportItem.Date.Format("2006-02-02")
 		if previousDate != currentDate && dailyTotal != 0 {
-			fmt.Printf(format, "", "", "", strconv.Itoa(dailyTotal), "")
+			fmt.Printf(format, "", "", "", padLeft(strconv.Itoa(dailyTotal), ".", 5), "")
 			previousDate = currentDate
 			dailyTotal = 0
 		}
 		dailyTotal += reportItem.Hours
 		total += reportItem.Hours
-		fmt.Printf(format, currentDate, reportItem.Task, strconv.Itoa(reportItem.Hours), "", "")
+		task := padRight(clipString(reportItem.Task, 30), ".", 30)
+		fmt.Printf(format, currentDate, task, strconv.Itoa(reportItem.Hours), "", "")
 	}
-	fmt.Printf(format, "", "", "", strconv.Itoa(dailyTotal), "")
-	fmt.Printf(format, "", "", "", "", strconv.Itoa(total))
+	fmt.Printf(format, "", "", "", padLeft(strconv.Itoa(dailyTotal), ".", 5), "")
+	fmt.Printf(format, "", "", "", "", padLeft(strconv.Itoa(total), ".", 5))
+}
+
+func padRight(str, pad string, lenght int) string {
+	for {
+		str += pad
+		if len(str) > lenght {
+			return str[0:lenght]
+		}
+	}
+}
+
+func padLeft(str, pad string, lenght int) string {
+	for {
+		str = pad + str
+		if len(str) > lenght {
+			return str[(len(str) - lenght):len(str)]
+		}
+	}
+}
+
+func clipString(s string, length int) string {
+	clipped := s
+	if len(s) > length+1 {
+		clipped = s[:length-3] + "..."
+	}
+	return clipped
 }
 
 func usage() {

@@ -6,7 +6,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/perhenrik/timesheet-txt/file"
@@ -26,7 +25,7 @@ func main() {
 	if os.Args[1] == "add" {
 		add(os.Args[2:])
 	} else if os.Args[1] == "report" {
-		createReport()
+		createReport(os.Args[2:])
 	} else if os.Args[1] == "list" {
 		list()
 	} else if os.Args[1] == "tidy" {
@@ -78,17 +77,23 @@ func tidy() {
 	file.WriteFile(workItems)
 }
 
-func createReport() {
+func createReport(arguments []string) {
+	s := strings.Join(arguments, " ")
+	workTime, err := file.CreateLineFromString(s)
+	if err != nil {
+		color.Red(err.Error())
+	}
+
 	workItems := file.ReadFile()
-	reportItems := report.Create(workItems, time.Now(), "5d")
+	reportItems := report.Create(workItems, workTime.Time, workTime.Duration)
 
 	format := "%12s%31s%6s%7s%7s\n"
 	previousDate := ""
-	dailyTotal := 0.0
+	dailyTotal := -1.0
 	total := 0.0
 	for _, reportItem := range reportItems {
 		currentDate := reportItem.Date.Format("2006-02-02")
-		if previousDate != currentDate && dailyTotal != 0 {
+		if previousDate != currentDate && dailyTotal >= 0 {
 			fmt.Printf(format, "", "", "", padLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
 			previousDate = currentDate
 			dailyTotal = 0

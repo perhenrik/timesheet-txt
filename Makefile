@@ -1,10 +1,12 @@
-# From https://sahilm.com/makefiles-for-golang/
+# Based on https://sahilm.com/makefiles-for-golang/
 
 PKGS := $(shell go list ./... | grep -v /vendor)
 
 .PHONY: test
-test: lint
-	go test $(PKGS)
+test:
+	go test -coverprofile=coverage.out $(PKGS)
+	go tool cover -func=coverage.out
+	#go tool cover -html=coverage.out
 
 BIN_DIR := $(GOPATH)/bin
 GOMETALINTER := $(BIN_DIR)/gometalinter

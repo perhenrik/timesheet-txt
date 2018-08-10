@@ -89,19 +89,19 @@ func createReport(arguments []string) {
 
 	format := "%12s%31s%6s%7s%7s\n"
 	previousDate := ""
-	dailyTotal := -1.0
+	dailyTotal := 0.0
 	total := 0.0
-	for _, reportItem := range reportItems {
+	for i, reportItem := range reportItems {
 		currentDate := reportItem.Date.Format("2006-02-02")
-		if previousDate != currentDate && dailyTotal >= 0 {
+		if previousDate != currentDate && i != 0 {
 			fmt.Printf(format, "", "", "", padLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
-			previousDate = currentDate
 			dailyTotal = 0
 		}
 		dailyTotal += reportItem.Hours
 		total += reportItem.Hours
 		task := padRight(clipString(reportItem.Task, 30), ".", 30)
 		fmt.Printf(format, currentDate, task, fmt.Sprintf("%.1f", reportItem.Hours), "", "")
+		previousDate = currentDate
 	}
 	fmt.Printf(format, "", "", "", padLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
 	fmt.Printf(format, "", "", "", "", padLeft(fmt.Sprintf("%.1f", total), ".", 7))

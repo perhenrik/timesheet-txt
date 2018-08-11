@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/perhenrik/timesheet-txt/util"
+
 	"github.com/perhenrik/timesheet-txt/file"
 	"github.com/perhenrik/timesheet-txt/report"
 )
@@ -21,24 +23,20 @@ func main() {
 		return
 	}
 
-	if os.Args[1] == "add" {
+	switch os.Args[1] {
+	case "add", "a":
 		add(os.Args[2:])
-	} else if os.Args[1] == "report" {
+	case "report", "r":
 		createReport(os.Args[2:])
-	} else if os.Args[1] == "list" {
+	case "list", "l", "ls":
 		list()
-	} else if os.Args[1] == "tidy" {
+	case "tidy", "t":
 		tidy()
-	} else if os.Args[1] == "delete" {
-		index, err := strconv.Atoi(os.Args[2])
-		if err != nil {
-			usageWithHelp()
-			return
-		}
-		delete(index)
-	} else if os.Args[1] == "help" {
+	case "delete", "d", "del":
+		delete(os.Args[2:])
+	case "help", "h":
 		help()
-	} else {
+	default:
 		usageWithHelp()
 	}
 }
@@ -50,7 +48,7 @@ func add(arguments []string) {
 		fmt.Fprintf(os.Stderr, err.Error())
 	} else {
 		file.AppendToFile(workTime)
-		fmt.Printf("Added %s\n", workTime)
+		fmt.Printf("Added: %s\n", workTime)
 	}
 }
 
@@ -61,14 +59,25 @@ func list() {
 	}
 }
 
-func delete(index int) {
+func delete(arguments []string) {
+	arguments = util.MakeSureArrayHasEnoughElements(arguments, 1)
+
+	indexArgument := arguments[0]
+	index, err := strconv.Atoi(indexArgument)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: invalid argument '%s'\n", indexArgument)
+		return
+	}
 	index--
 	workTimes := file.ReadFile()
 	if index < 0 || index > len(workTimes)-1 {
 		return
 	}
+	deletedWorkTime := workTimes[index]
 	workTimes = append(workTimes[:index], workTimes[index+1:]...)
 	file.WriteFile(workTimes)
+
+	fmt.Printf("Deleted: %s\n", deletedWorkTime)
 }
 
 func tidy() {
@@ -93,43 +102,17 @@ func createReport(arguments []string) {
 	for i, reportItem := range reportItems {
 		currentDate := reportItem.Date.Format("2006-02-02")
 		if previousDate != currentDate && i != 0 {
-			fmt.Printf(format, "", "", "", padLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+			fmt.Printf(format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
 			dailyTotal = 0
 		}
 		dailyTotal += reportItem.Hours
 		total += reportItem.Hours
-		task := padRight(clipString(reportItem.Task, 30), ".", 30)
+		task := util.PadRight(util.ClipString(reportItem.Task, 30), ".", 30)
 		fmt.Printf(format, currentDate, task, fmt.Sprintf("%.1f", reportItem.Hours), "", "")
 		previousDate = currentDate
 	}
-	fmt.Printf(format, "", "", "", padLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
-	fmt.Printf(format, "", "", "", "", padLeft(fmt.Sprintf("%.1f", total), ".", 7))
-}
-
-func padRight(str, pad string, lenght int) string {
-	for {
-		str += pad
-		if len(str) > lenght {
-			return str[0:lenght]
-		}
-	}
-}
-
-func padLeft(str, pad string, lenght int) string {
-	for {
-		str = pad + str
-		if len(str) > lenght {
-			return str[(len(str) - lenght):]
-		}
-	}
-}
-
-func clipString(s string, length int) string {
-	clipped := s
-	if len(s) > length+1 {
-		clipped = s[:length-3] + "..."
-	}
-	return clipped
+	fmt.Printf(format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+	fmt.Printf(format, "", "", "", "", util.PadLeft(fmt.Sprintf("%.1f", total), ".", 7))
 }
 
 func usage() {

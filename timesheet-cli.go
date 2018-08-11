@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/perhenrik/timesheet-txt/file"
 	"github.com/perhenrik/timesheet-txt/report"
 )
@@ -48,10 +47,10 @@ func add(arguments []string) {
 	s := strings.Join(arguments, " ")
 	workTime, err := file.CreateLineFromString(s)
 	if err != nil {
-		color.Red(err.Error())
+		fmt.Fprintf(os.Stderr, err.Error())
 	} else {
 		file.AppendToFile(workTime)
-		color.Yellow("Adding %s", workTime)
+		fmt.Printf("Added %s\n", workTime)
 	}
 }
 
@@ -81,7 +80,7 @@ func createReport(arguments []string) {
 	s := strings.Join(arguments, " ")
 	workTime, err := file.CreateLineFromString(s)
 	if err != nil {
-		color.Red(err.Error())
+		fmt.Fprintf(os.Stderr, err.Error())
 	}
 
 	workItems := file.ReadFile()

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/perhenrik/timesheet-txt/model"
+
 	"github.com/perhenrik/timesheet-txt/util"
 
 	"github.com/perhenrik/timesheet-txt/file"
@@ -43,7 +45,7 @@ func main() {
 
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := file.CreateLineFromString(s)
+	workTime, err := model.CreateWorkAmountFromString(s)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 	} else {
@@ -55,26 +57,22 @@ func add(arguments []string) {
 func list() {
 	workItems := file.ReadFile()
 	for _, workItem := range workItems {
-		fmt.Printf("%4d: %s %s %s\n", workItem.Index, workItem.Time.Format("2006-01-02"), workItem.Duration, workItem.Task)
+		fmt.Printf("%4d: %s %.1f %s\n", workItem.Index, workItem.Date.Format("2006-01-02"), workItem.Hours, workItem.Task)
 	}
 }
 
 func delete(arguments []string) {
 	arguments = util.MakeSureArrayHasEnoughElements(arguments, 1)
 
-	indexArgument := arguments[0]
-	index, err := strconv.Atoi(indexArgument)
+	index, err := strconv.Atoi(arguments[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: invalid argument '%s'\n", indexArgument)
+		fmt.Fprintf(os.Stderr, "Error: invalid argument '%s'\n", arguments[0])
 		return
 	}
+
 	index--
 	workTimes := file.ReadFile()
-	if index < 0 || index > len(workTimes)-1 {
-		return
-	}
-	deletedWorkTime := workTimes[index]
-	workTimes = append(workTimes[:index], workTimes[index+1:]...)
+	deletedWorkTime := util.DeleteFromArray(workTimes, index)
 	file.WriteFile(workTimes)
 
 	fmt.Printf("Deleted: %s\n", deletedWorkTime)
@@ -87,13 +85,13 @@ func tidy() {
 
 func createReport(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := file.CreateLineFromString(s)
+	workTime, err := model.CreateWorkAmountFromString(s)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 	}
 
 	workItems := file.ReadFile()
-	reportItems := report.Create(workItems, workTime.Time, workTime.Duration)
+	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
 
 	format := "%12s%31s%6s%7s%7s\n"
 	previousDate := ""

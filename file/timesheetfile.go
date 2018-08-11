@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/perhenrik/timesheet-txt/model"
 )
 
 func timesheetFile() string {
@@ -17,13 +18,13 @@ func timesheetFile() string {
 	return filepath.Join(homeDirectory, filename)
 }
 
-func writeLine(file *os.File, line Line) {
-	_, err := file.WriteString(line.Time.Format("2006-01-02") + " " + line.Duration + " " + line.Task + "\n")
+func writeLine(file *os.File, workAmount model.Work) {
+	_, err := file.WriteString(workAmount.String() + "\n")
 	check(err)
 }
 
 // AppendToFile append a work time item to the timesheet file
-func AppendToFile(line Line) {
+func AppendToFile(workAmount model.Work) {
 	file, err := os.OpenFile(timesheetFile(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	check(err)
 
@@ -32,11 +33,11 @@ func AppendToFile(line Line) {
 		check(cerr)
 	}()
 
-	writeLine(file, line)
+	writeLine(file, workAmount)
 }
 
 // ReadFile reads in and parses the default timesheet file
-func ReadFile() (lines []Line) {
+func ReadFile() (workAmounts []model.Work) {
 	file, err := os.OpenFile(timesheetFile(), os.O_RDONLY|os.O_CREATE, 0600)
 	check(err)
 
@@ -50,24 +51,24 @@ func ReadFile() (lines []Line) {
 	for scanner.Scan() {
 		if strings.TrimSpace(scanner.Text()) != "" {
 			index++
-			line, err := CreateLineFromString(scanner.Text())
+			workAmount, err := model.CreateWorkAmountFromString(scanner.Text())
 			if err == nil {
-				line.Index = index
-				lines = append(lines, line)
+				workAmount.Index = index
+				workAmounts = append(workAmounts, workAmount)
 			}
 		}
 	}
 	check(scanner.Err())
 
-	sort.Slice(lines[:], func(i, j int) bool {
-		return lines[i].String() < lines[j].String()
+	sort.Slice(workAmounts[:], func(i, j int) bool {
+		return workAmounts[i].String() < workAmounts[j].String()
 	})
 
-	return lines
+	return workAmounts
 }
 
 // WriteFile overwrites the default timesheet file with the values in the supplied array
-func WriteFile(lines []Line) {
+func WriteFile(lines []model.Work) {
 	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	check(err)
 

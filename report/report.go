@@ -1,34 +1,20 @@
 package report
 
 import (
-	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/perhenrik/timesheet-txt/file"
+	"github.com/perhenrik/timesheet-txt/model"
 )
 
 //Create returns an array of sorted report items
-func Create(workItems []file.Line, endTime time.Time, taskDuration string) (items []Item) {
-	hours, err := ParseDuration(taskDuration)
-	if err != nil {
-		return
-	}
-
+func Create(workAmounts []model.Work, endTime time.Time, taskDuration float64) (items []model.Work) {
 	itemMap := make(map[string]float64)
-	startTime := endTime.Add(time.Hour * -time.Duration(hours))
-	for _, line := range workItems {
-		if dateInRange(line.Time, startTime, endTime) {
-			hours, err := ParseDuration(line.Duration)
-			if err != nil {
-				_, cerr := fmt.Fprintln(os.Stderr, err)
-				if cerr != nil {
-					panic(cerr)
-				}
-			}
-			itemMap[line.Time.Format("2006-01-02")+"^"+line.Task] += hours
+	startTime := endTime.Add(time.Hour * -time.Duration(taskDuration))
+	for _, workAmount := range workAmounts {
+		if dateInRange(workAmount.Date, startTime, endTime) {
+			itemMap[workAmount.Date.Format("2006-01-02")+"^"+workAmount.Task] += workAmount.Hours
 		}
 	}
 
@@ -42,7 +28,7 @@ func Create(workItems []file.Line, endTime time.Time, taskDuration string) (item
 
 	for _, key := range keys {
 		itemTime, itemTask := splitKey(key)
-		r := Item{Date: itemTime, Hours: itemMap[key], Task: itemTask}
+		r := model.Work{Date: itemTime, Hours: itemMap[key], Task: itemTask}
 		items = append(items, r)
 	}
 	return items

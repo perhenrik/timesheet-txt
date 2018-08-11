@@ -21,10 +21,10 @@ func PadLeft(str, pad string, lenght int) string {
 }
 
 // ClipString cuts of a string at length-3 and adds ... at the end
-func ClipString(s string, length int) string {
-	clipped := s
-	if len(s) > length+1 {
-		clipped = s[:length-3] + "..."
+func ClipString(str string, length int) string {
+	clipped := str
+	if len(str) > length+1 {
+		clipped = str[:length-3] + "..."
 	}
 	return clipped
 }

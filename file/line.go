@@ -14,6 +14,10 @@ type Line struct {
 	Task     string
 }
 
+func (line Line) String() string {
+	return line.Time.Format("2006-01-02") + " " + line.Duration + " " + line.Task
+}
+
 // CreateLineFromString parses a string and returns a new WorkTime.
 // The input string must be separated by spaces.
 func CreateLineFromString(s string) (line Line, err error) {

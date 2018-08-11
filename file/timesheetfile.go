@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -57,6 +58,10 @@ func ReadFile() (lines []Line) {
 		}
 	}
 	check(scanner.Err())
+
+	sort.Slice(lines[:], func(i, j int) bool {
+		return lines[i].String() < lines[j].String()
+	})
 
 	return lines
 }

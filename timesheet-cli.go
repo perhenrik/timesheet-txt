@@ -46,12 +46,10 @@ func main() {
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
 	workTime, err := model.CreateWorkAmountFromString(s)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-	} else {
-		file.AppendToFile(workTime)
-		fmt.Printf("Added: %s\n", workTime)
-	}
+	check(err)
+
+	file.AppendToFile(workTime)
+	fmt.Printf("Added: %s\n", workTime)
 }
 
 func list() {
@@ -63,19 +61,16 @@ func list() {
 
 func delete(arguments []string) {
 	arguments = util.MakeSureArrayHasEnoughElements(arguments, 1)
-
 	index, err := strconv.Atoi(arguments[0])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: invalid argument '%s'\n", arguments[0])
-		return
-	}
+	check(err)
 
 	index--
-	workTimes := file.ReadFile()
-	deletedWorkTime := util.DeleteFromArray(workTimes, index)
-	file.WriteFile(workTimes)
+	workList := file.ReadFile()
+	newWorkList, deletedWorkItem, err := util.DeleteFromArray(workList, index)
+	check(err)
 
-	fmt.Printf("Deleted: %s\n", deletedWorkTime)
+	file.WriteFile(newWorkList)
+	fmt.Printf("Deleted: %s\n", deletedWorkItem)
 }
 
 func tidy() {
@@ -86,9 +81,7 @@ func tidy() {
 func createReport(arguments []string) {
 	s := strings.Join(arguments, " ")
 	workTime, err := model.CreateWorkAmountFromString(s)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-	}
+	check(err)
 
 	workItems := file.ReadFile()
 	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
@@ -111,6 +104,13 @@ func createReport(arguments []string) {
 	}
 	fmt.Printf(format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
 	fmt.Printf(format, "", "", "", "", util.PadLeft(fmt.Sprintf("%.1f", total), ".", 7))
+}
+
+func check(e error) {
+	if e != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
+		os.Exit(1)
+	}
 }
 
 func usage() {

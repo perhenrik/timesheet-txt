@@ -72,7 +72,7 @@ func ParseDuration(duration string) (hours float64, err error) {
 			hours = value * 24 * 7 * 30
 		}
 	} else {
-		err = errors.New("Invalid duration: " + duration)
+		err = errors.New("invalid duration: " + duration)
 	}
 
 	return hours, err

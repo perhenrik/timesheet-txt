@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -84,6 +85,7 @@ func WriteFile(lines []model.Work) {
 
 func check(e error) {
 	if e != nil {
-		panic(e)
+		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
+		os.Exit(1)
 	}
 }

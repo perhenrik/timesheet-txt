@@ -2,7 +2,6 @@ package file
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,28 +9,29 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/perhenrik/timesheet-txt/model"
+	"github.com/perhenrik/timesheet-txt/util"
 )
 
 func timesheetFile() string {
 	filename := ".timesheet.txt"
 	homeDirectory, err := homedir.Dir()
-	check(err)
+	util.Check(err)
 	return filepath.Join(homeDirectory, filename)
 }
 
 func writeLine(file *os.File, workAmount model.Work) {
 	_, err := file.WriteString(workAmount.String() + "\n")
-	check(err)
+	util.Check(err)
 }
 
 // AppendToFile append a work time item to the timesheet file
 func AppendToFile(workAmount model.Work) {
 	file, err := os.OpenFile(timesheetFile(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	check(err)
+	util.Check(err)
 
 	defer func() {
 		cerr := file.Close()
-		check(cerr)
+		util.Check(cerr)
 	}()
 
 	writeLine(file, workAmount)
@@ -40,11 +40,11 @@ func AppendToFile(workAmount model.Work) {
 // ReadFile reads in and parses the default timesheet file
 func ReadFile() (workAmounts []model.Work) {
 	file, err := os.OpenFile(timesheetFile(), os.O_RDONLY|os.O_CREATE, 0600)
-	check(err)
+	util.Check(err)
 
 	defer func() {
 		cerr := file.Close()
-		check(cerr)
+		util.Check(cerr)
 	}()
 
 	scanner := bufio.NewScanner(file)
@@ -59,7 +59,7 @@ func ReadFile() (workAmounts []model.Work) {
 			}
 		}
 	}
-	check(scanner.Err())
+	util.Check(scanner.Err())
 
 	sort.Slice(workAmounts[:], func(i, j int) bool {
 		return workAmounts[i].String() < workAmounts[j].String()
@@ -71,21 +71,14 @@ func ReadFile() (workAmounts []model.Work) {
 // WriteFile overwrites the default timesheet file with the values in the supplied array
 func WriteFile(lines []model.Work) {
 	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	check(err)
+	util.Check(err)
 
 	defer func() {
 		cerr := file.Close()
-		check(cerr)
+		util.Check(cerr)
 	}()
 
 	for _, line := range lines {
 		writeLine(file, line)
-	}
-}
-
-func check(e error) {
-	if e != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
-		os.Exit(1)
 	}
 }

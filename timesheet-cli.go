@@ -46,7 +46,7 @@ func main() {
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
 	workTime, err := model.CreateWorkAmountFromString(s)
-	check(err)
+	util.Check(err)
 
 	file.AppendToFile(workTime)
 	fmt.Printf("Added: %s\n", workTime)
@@ -62,12 +62,12 @@ func list() {
 func delete(arguments []string) {
 	arguments = util.MakeSureArrayHasEnoughElements(arguments, 1)
 	index, err := strconv.Atoi(arguments[0])
-	check(err)
+	util.Check(err)
 
 	index--
 	workList := file.ReadFile()
 	newWorkList, deletedWorkItem, err := util.DeleteFromArray(workList, index)
-	check(err)
+	util.Check(err)
 
 	file.WriteFile(newWorkList)
 	fmt.Printf("Deleted: %s\n", deletedWorkItem)
@@ -81,20 +81,13 @@ func tidy() {
 func createReport(arguments []string) {
 	s := strings.Join(arguments, " ")
 	workTime, err := model.CreateWorkAmountFromString(s)
-	check(err)
+	util.Check(err)
 
 	workItems := file.ReadFile()
 	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
 	theReport := report.Simple(reportItems)
 
 	fmt.Print(theReport)
-}
-
-func check(e error) {
-	if e != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
-		os.Exit(1)
-	}
 }
 
 func usage() {

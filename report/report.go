@@ -10,7 +10,7 @@ import (
 	"github.com/perhenrik/timesheet-txt/util"
 )
 
-// SimpleFormat builds a simple report based an an array of model.Work
+// Simple builds a simple report based an an array of model.Work
 func Simple(reportItems []model.Work) string {
 	format := "%12s%31s%6s%7s%7s\n"
 	previousDate := ""
@@ -21,17 +21,21 @@ func Simple(reportItems []model.Work) string {
 	for i, reportItem := range reportItems {
 		currentDate := reportItem.Date.Format("2006-02-02")
 		if previousDate != currentDate && i != 0 {
-			fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+			_, err := fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+			util.Check(err)
 			dailyTotal = 0
 		}
 		dailyTotal += reportItem.Hours
 		total += reportItem.Hours
 		task := util.PadRight(util.ClipString(reportItem.Task, 30), ".", 30)
-		fmt.Fprintf(&report, format, currentDate, task, fmt.Sprintf("%.1f", reportItem.Hours), "", "")
+		_, err := fmt.Fprintf(&report, format, currentDate, task, fmt.Sprintf("%.1f", reportItem.Hours), "", "")
+		util.Check(err)
 		previousDate = currentDate
 	}
-	fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
-	fmt.Fprintf(&report, format, "", "", "", "", util.PadLeft(fmt.Sprintf("%.1f", total), ".", 7))
+	_, err := fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+	util.Check(err)
+	_, err = fmt.Fprintf(&report, format, "", "", "", "", util.PadLeft(fmt.Sprintf("%.1f", total), ".", 7))
+	util.Check(err)
 
 	return report.String()
 }

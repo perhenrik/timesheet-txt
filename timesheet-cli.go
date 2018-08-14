@@ -85,25 +85,9 @@ func createReport(arguments []string) {
 
 	workItems := file.ReadFile()
 	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
+	theReport := report.Simple(reportItems)
 
-	format := "%12s%31s%6s%7s%7s\n"
-	previousDate := ""
-	dailyTotal := 0.0
-	total := 0.0
-	for i, reportItem := range reportItems {
-		currentDate := reportItem.Date.Format("2006-02-02")
-		if previousDate != currentDate && i != 0 {
-			fmt.Printf(format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
-			dailyTotal = 0
-		}
-		dailyTotal += reportItem.Hours
-		total += reportItem.Hours
-		task := util.PadRight(util.ClipString(reportItem.Task, 30), ".", 30)
-		fmt.Printf(format, currentDate, task, fmt.Sprintf("%.1f", reportItem.Hours), "", "")
-		previousDate = currentDate
-	}
-	fmt.Printf(format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
-	fmt.Printf(format, "", "", "", "", util.PadLeft(fmt.Sprintf("%.1f", total), ".", 7))
+	fmt.Print(theReport)
 }
 
 func check(e error) {

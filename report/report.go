@@ -1,12 +1,40 @@
 package report
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/perhenrik/timesheet-txt/model"
+	"github.com/perhenrik/timesheet-txt/util"
 )
+
+// SimpleFormat builds a simple report based an an array of model.Work
+func Simple(reportItems []model.Work) string {
+	format := "%12s%31s%6s%7s%7s\n"
+	previousDate := ""
+	dailyTotal := 0.0
+	total := 0.0
+	var report strings.Builder
+
+	for i, reportItem := range reportItems {
+		currentDate := reportItem.Date.Format("2006-02-02")
+		if previousDate != currentDate && i != 0 {
+			fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+			dailyTotal = 0
+		}
+		dailyTotal += reportItem.Hours
+		total += reportItem.Hours
+		task := util.PadRight(util.ClipString(reportItem.Task, 30), ".", 30)
+		fmt.Fprintf(&report, format, currentDate, task, fmt.Sprintf("%.1f", reportItem.Hours), "", "")
+		previousDate = currentDate
+	}
+	fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
+	fmt.Fprintf(&report, format, "", "", "", "", util.PadLeft(fmt.Sprintf("%.1f", total), ".", 7))
+
+	return report.String()
+}
 
 //Create returns an array of sorted report items
 func Create(workAmounts []model.Work, endTime time.Time, taskDuration float64) (items []model.Work) {

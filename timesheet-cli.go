@@ -104,29 +104,29 @@ func help() {
 	fmt.Println()
 	fmt.Println(`Actions:
 
-	add [date] duration task
+	add|a [date] duration task
 	    Description:
 	        Appends a new task with the given duration to the timesheet file
 		Arguments:
             duration: <number>[h|m], examples: 1h (one hour), 30m (30 minutes)
             task: free text string
 	
-	list
+	list|ls|l
 	    Description:
 	        Lists all work registered, more or less a cat of the timesheet file.
             All lines are prepended with a number wich can be used in other action, ie. delete.
 	
-	delete [number]
+	delete|del|d [number]
 	    Description:
 		    Deletes the work identified by number. This number can found using the list action.
 		Arguments:
 		    number: the work item to delere
 
-	tidy
+	tidy|t
 	    Description:
 		    Cleans up the timesheet file. Note: this action will overwrite your timesheetfile.
 		
-	report [date] [period]
+	report|r [date] [period]
 		Description:
 			Prints a summarized time report. All tasks on the same date are summarized.
 		Arguments

@@ -15,7 +15,7 @@ func TestParseDuration(t *testing.T) {
 		{name: "2hours", args: args{duration: "2h"}, wantHours: 2.0, wantErr: false},
 		{name: "1day", args: args{duration: "1.0d"}, wantHours: 24.0, wantErr: false},
 		{name: "2weeks", args: args{duration: "2w"}, wantHours: 336.0, wantErr: false},
-		{name: "1month", args: args{duration: "1m"}, wantHours: 5040.0, wantErr: false},
+		{name: "30minutes", args: args{duration: "30m"}, wantHours: 0.5, wantErr: false},
 		{name: "invalidDuration", args: args{duration: "2e"}, wantHours: 0.0, wantErr: true},
 	}
 	for _, tt := range tests {

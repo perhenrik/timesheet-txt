@@ -55,7 +55,7 @@ func add(arguments []string) {
 func list() {
 	workItems := file.ReadFile()
 	for _, workItem := range workItems {
-		fmt.Printf("%4d: %s %.1f %s\n", workItem.Index, workItem.Date.Format("2006-01-02"), workItem.Hours, workItem.Task)
+		fmt.Printf("%4d: %s\n", workItem.Index, workItem.String())
 	}
 }
 

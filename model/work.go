@@ -17,8 +17,11 @@ type Work struct {
 	Task  string
 }
 
+var durationMatcher = regexp.MustCompile(`^(\d{1,4}(\.\d){0,1})([mhdw]{1})$`)
+var dateMatcher = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
 func (work Work) String() string {
-	return work.Date.Format("2006-01-02") + " " + fmt.Sprintf("%.1f", work.Hours) + " " + work.Task
+	return work.Date.Format("2006-01-02") + " " + fmt.Sprintf("%.1f", work.Hours) + "h " + work.Task
 }
 
 // CreateWorkAmountFromString parses a string and returns a new WorkTime.
@@ -29,9 +32,6 @@ func CreateWorkAmountFromString(s string) (workAmount Work, err error) {
 		Date:  time.Now(),
 		Hours: 1,
 		Task:  "foobar"}
-
-	dateMatcher := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
-	durationMatcher := regexp.MustCompile(`^\d{1,2}(\.\d){0,1}[hdwm]$`)
 
 	for _, element := range elements {
 		if dateMatcher.MatchString(element) {
@@ -53,7 +53,7 @@ func CreateWorkAmountFromString(s string) (workAmount Work, err error) {
 
 // ParseDuration parses a duration-string, eg. 5h, 3d, and returns the corresponding hours
 func ParseDuration(duration string) (hours float64, err error) {
-	durationMatcher := regexp.MustCompile(`^(\d{1,2}(\.\d){0,1})([hdwm]{1})$`)
+
 	matched := durationMatcher.FindStringSubmatch(duration)
 
 	if matched != nil {
@@ -69,11 +69,10 @@ func ParseDuration(duration string) (hours float64, err error) {
 		} else if matched[3] == "w" {
 			hours = value * 24 * 7
 		} else if matched[3] == "m" {
-			hours = value * 24 * 7 * 30
+			hours = value / 60
 		}
 	} else {
 		err = errors.New("invalid duration: " + duration)
 	}
-
 	return hours, err
 }

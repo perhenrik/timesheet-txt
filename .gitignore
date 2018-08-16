@@ -8,6 +8,9 @@
 # Releases
 release/
 
+# Visual Studio Code
+.vscode/
+
 # Test binary, build with `go test -c`
 *.test
 

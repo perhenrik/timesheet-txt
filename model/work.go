@@ -24,11 +24,11 @@ func (work Work) String() string {
 	return work.Date.Format("2006-01-02") + " " + fmt.Sprintf("%.1f", work.Hours) + "h " + work.Task
 }
 
-// CreateWorkAmountFromString parses a string and returns a new WorkTime.
+// CreateWorkFromString parses a string and returns a new WorkTime.
 // The input string must be separated by spaces.
-func CreateWorkAmountFromString(s string) (workAmount Work, err error) {
+func CreateWorkFromString(s string) (work Work, err error) {
 	elements := strings.Split(s, " ")
-	workAmount = Work{
+	work = Work{
 		Date:  time.Now(),
 		Hours: 1,
 		Task:  "foobar"}
@@ -37,18 +37,18 @@ func CreateWorkAmountFromString(s string) (workAmount Work, err error) {
 		if dateMatcher.MatchString(element) {
 			time, cerr := time.Parse("2006-01-02", element)
 			if cerr == nil {
-				workAmount.Date = time
+				work.Date = time
 			}
 		} else if durationMatcher.MatchString(element) {
 			hours, cerr := ParseDuration(element)
 			if cerr == nil {
-				workAmount.Hours = hours
+				work.Hours = hours
 			}
 		} else {
-			workAmount.Task = element
+			work.Task = element
 		}
 	}
-	return workAmount, err
+	return work, err
 }
 
 // ParseDuration parses a duration-string, eg. 5h, 3d, and returns the corresponding hours

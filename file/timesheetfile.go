@@ -49,7 +49,6 @@ func (f TimesheetFile) AppendToFile(workAmount model.Work) {
 
 // ReadFile reads in and parses the default timesheet file
 func (f TimesheetFile) ReadFile() (workAmounts []model.Work) {
-	fmt.Println("File: " + f.Name)
 	file, err := os.OpenFile(f.Name, os.O_RDONLY|os.O_CREATE, 0600)
 	util.Check(err)
 

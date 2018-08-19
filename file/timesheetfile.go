@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,11 +13,20 @@ import (
 	"github.com/perhenrik/timesheet-txt/util"
 )
 
-func timesheetFile() string {
-	filename := ".timesheet.txt"
+// TimesheetFile handles all interactions with the file containing the Work
+type TimesheetFile struct {
+	Name string
+}
+
+func (f TimesheetFile) String() string {
+	return fmt.Sprintf("%s", f.Name)
+}
+
+// DefaultFileName returns the default timesheet filename
+func DefaultFileName() string {
 	homeDirectory, err := homedir.Dir()
 	util.Check(err)
-	return filepath.Join(homeDirectory, filename)
+	return filepath.Join(homeDirectory, ".timesheet.txt")
 }
 
 func writeLine(file *os.File, workAmount model.Work) {
@@ -25,8 +35,8 @@ func writeLine(file *os.File, workAmount model.Work) {
 }
 
 // AppendToFile append a work time item to the timesheet file
-func AppendToFile(workAmount model.Work) {
-	file, err := os.OpenFile(timesheetFile(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+func (f TimesheetFile) AppendToFile(workAmount model.Work) {
+	file, err := os.OpenFile(f.Name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	util.Check(err)
 
 	defer func() {
@@ -38,8 +48,9 @@ func AppendToFile(workAmount model.Work) {
 }
 
 // ReadFile reads in and parses the default timesheet file
-func ReadFile() (workAmounts []model.Work) {
-	file, err := os.OpenFile(timesheetFile(), os.O_RDONLY|os.O_CREATE, 0600)
+func (f TimesheetFile) ReadFile() (workAmounts []model.Work) {
+	fmt.Println("File: " + f.Name)
+	file, err := os.OpenFile(f.Name, os.O_RDONLY|os.O_CREATE, 0600)
 	util.Check(err)
 
 	defer func() {
@@ -52,7 +63,7 @@ func ReadFile() (workAmounts []model.Work) {
 	for scanner.Scan() {
 		if strings.TrimSpace(scanner.Text()) != "" {
 			index++
-			workAmount, err := model.CreateWorkAmountFromString(scanner.Text())
+			workAmount, err := model.CreateWorkFromString(scanner.Text())
 			if err == nil {
 				workAmount.Index = index
 				workAmounts = append(workAmounts, workAmount)
@@ -69,8 +80,8 @@ func ReadFile() (workAmounts []model.Work) {
 }
 
 // WriteFile overwrites the default timesheet file with the values in the supplied array
-func WriteFile(lines []model.Work) {
-	file, err := os.OpenFile(timesheetFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+func (f TimesheetFile) WriteFile(lines []model.Work) {
+	file, err := os.OpenFile(f.Name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	util.Check(err)
 
 	defer func() {

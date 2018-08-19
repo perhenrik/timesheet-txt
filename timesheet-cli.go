@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -16,43 +17,62 @@ import (
 )
 
 var commandName = ""
+var timesheetFilename = ""
 
 func main() {
 	commandName = path.Base(os.Args[0])
 
-	if len(os.Args) < 2 {
+	flag.Usage = func() {
+		usageWithHelp()
+	}
+
+	flag.StringVar(&timesheetFilename, "f", file.DefaultFileName(), "the timesheet filename")
+	flag.Parse()
+
+	if len(flag.Args()) < 1 {
+		fmt.Println("no action provided")
 		usageWithHelp()
 		return
 	}
 
-	switch os.Args[1] {
+	switch flag.Arg(0) {
 	case "add", "a":
-		add(os.Args[2:])
+		add(flag.Args()[1:])
 	case "report", "r":
-		createReport(os.Args[2:])
+		createReport(flag.Args()[1:])
 	case "list", "l", "ls":
 		list()
 	case "tidy", "t":
 		tidy()
 	case "delete", "d", "del":
-		delete(os.Args[2:])
+		delete(flag.Args()[1:])
 	case "help", "h":
 		help()
 	default:
+		fmt.Println("action provided but not defined: " + flag.Arg(0))
 		usageWithHelp()
 	}
 }
 
+func fileExists(filename string) bool {
+	if _, err := os.Stat(filename); err == nil {
+		return true
+	}
+	return false
+}
+
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := model.CreateWorkAmountFromString(s)
+	workTime, err := model.CreateWorkFromString(s)
 	util.Check(err)
 
+	file := file.TimesheetFile{Name: timesheetFilename}
 	file.AppendToFile(workTime)
 	fmt.Printf("Added: %s\n", workTime)
 }
 
 func list() {
+	file := file.TimesheetFile{Name: timesheetFilename}
 	workItems := file.ReadFile()
 	for _, workItem := range workItems {
 		fmt.Printf("%4d: %s\n", workItem.Index, workItem.String())
@@ -65,6 +85,7 @@ func delete(arguments []string) {
 	util.Check(err)
 
 	index--
+	file := file.TimesheetFile{Name: timesheetFilename}
 	workList := file.ReadFile()
 	newWorkList, deletedWorkItem, err := util.DeleteFromArray(workList, index)
 	util.Check(err)
@@ -74,15 +95,17 @@ func delete(arguments []string) {
 }
 
 func tidy() {
+	file := file.TimesheetFile{Name: timesheetFilename}
 	workItems := file.ReadFile()
 	file.WriteFile(workItems)
 }
 
 func createReport(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := model.CreateWorkAmountFromString(s)
+	workTime, err := model.CreateWorkFromString(s)
 	util.Check(err)
 
+	file := file.TimesheetFile{Name: timesheetFilename}
 	workItems := file.ReadFile()
 	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
 	theReport := report.Simple(reportItems)
@@ -91,7 +114,7 @@ func createReport(arguments []string) {
 }
 
 func usage() {
-	fmt.Println("Usage: " + commandName + " action [parameters]")
+	fmt.Println("Usage: " + commandName + " [-f filename] action [parameters]")
 }
 
 func usageWithHelp() {

@@ -19,7 +19,7 @@ func Simple(reportItems []model.Work) string {
 	var report strings.Builder
 
 	for i, reportItem := range reportItems {
-		currentDate := reportItem.Date.Format("2006-02-02")
+		currentDate := reportItem.Date.Format("2006-01-02")
 		if previousDate != currentDate && i != 0 {
 			_, err := fmt.Fprintf(&report, format, "", "", "", util.PadLeft(fmt.Sprintf("%.1f", dailyTotal), ".", 7), "")
 			util.Check(err)

@@ -108,7 +108,15 @@ func createReport(arguments []string) {
 	file := file.TimesheetFile{Name: timesheetFilename}
 	workItems := file.ReadFile()
 	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
-	theReport := report.Simple(reportItems)
+
+	var theReport = ""
+	switch workTime.Task {
+	case "summary":
+		theReport = report.Summary(reportItems)
+	default:
+		theReport = report.Simple(reportItems)
+	}
+	//theReport := report.Simple(reportItems)
 
 	fmt.Print(theReport)
 }
@@ -149,11 +157,12 @@ func help() {
 	    Description:
 		    Cleans up the timesheet file. Note: this action will overwrite your timesheetfile.
 		
-	report|r [date] [period]
+	report|r [date] [period] [type]
 		Description:
 			Prints a summarized time report. All tasks on the same date are summarized.
 		Arguments
 			date:   the date wich is the end of the report period, defaults to now.
 			period: the duration of the report counting backwords from date. Defaults to 5 days (5d)
+			type:	The report type (simple|summary). Defaults to 'simple'
   `)
 }

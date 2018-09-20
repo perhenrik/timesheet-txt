@@ -10,6 +10,25 @@ import (
 	"github.com/perhenrik/timesheet-txt/util"
 )
 
+// Summary sums up all tasks, one per line
+func Summary(reportItems []model.Work) string {
+	format := "%30s: %7s\n"
+	var report strings.Builder
+
+	var sums = make(map[string]float64)
+
+	for _, reportItem := range reportItems {
+		task := util.PadRight(util.ClipString(reportItem.Task, 30), ".", 30)
+		sums[task] += reportItem.Hours
+	}
+
+	for task, hours := range sums {
+		_, err := fmt.Fprintf(&report, format, task, fmt.Sprintf("%.1f", hours))
+		util.Check(err)
+	}
+	return report.String()
+}
+
 // Simple builds a simple report based an an array of model.Work
 func Simple(reportItems []model.Work) string {
 	format := "%12s%31s%6s%7s%7s\n"

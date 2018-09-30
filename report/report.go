@@ -3,8 +3,11 @@ package report
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/JamesClonk/go-todotxt"
 
 	"github.com/perhenrik/timesheet-txt/model"
 	"github.com/perhenrik/timesheet-txt/util"
@@ -60,12 +63,25 @@ func Simple(reportItems []model.Work) string {
 }
 
 //Create returns an array of sorted report items
-func Create(workAmounts []model.Work, endTime time.Time, taskDuration float64) (items []model.Work) {
+func Create(tasklist todotxt.TaskList, endTime time.Time, taskDuration float64) (items []model.Work) {
 	itemMap := make(map[string]float64)
 	startTime := endTime.Add(time.Hour * -time.Duration(taskDuration))
-	for _, workAmount := range workAmounts {
-		if dateInRange(workAmount.Date, startTime, endTime) {
-			itemMap[workAmount.Date.Format("2006-01-02")+"^"+workAmount.Task] += workAmount.Hours
+	for _, task := range tasklist {
+		if !task.Completed {
+			continue
+		}
+
+		taskHours := getTaskHours(task)
+		if taskHours == 0 {
+			continue
+		}
+
+		taskDate := getTaskDate(task)
+		taskProject := getTaskProject(task)
+		taskTask := getTaskTask(task)
+
+		if dateInRange(taskDate, startTime, endTime) {
+			itemMap[taskDate.Format("2006-01-02")+"^"+taskProject+"."+taskTask] += taskHours
 		}
 	}
 
@@ -83,6 +99,37 @@ func Create(workAmounts []model.Work, endTime time.Time, taskDuration float64) (
 		items = append(items, r)
 	}
 	return items
+}
+
+func getTaskHours(task todotxt.Task) (hours float64) {
+	hours, err := strconv.ParseFloat(task.AdditionalTags["hours"], 64)
+	if err != nil {
+		hours = 0
+	}
+	return
+}
+
+func getTaskProject(task todotxt.Task) (project string) {
+	if len(task.Projects) > 0 {
+		project = task.Projects[0]
+	} else {
+		project = ""
+	}
+	return
+}
+
+func getTaskTask(task todotxt.Task) (subtask string) {
+	subtask = task.AdditionalTags["task"]
+	return
+}
+
+func getTaskDate(task todotxt.Task) (taskDate time.Time) {
+	if task.HasCompletedDate() {
+		taskDate = task.CompletedDate
+	} else if task.HasCreatedDate() {
+		taskDate = task.CreatedDate
+	}
+	return taskDate
 }
 
 func dateInRange(current time.Time, start time.Time, end time.Time) (result bool) {

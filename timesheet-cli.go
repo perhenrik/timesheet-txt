@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/JamesClonk/go-todotxt"
 	"github.com/perhenrik/timesheet-txt/model"
 
 	"github.com/perhenrik/timesheet-txt/util"
@@ -42,8 +43,6 @@ func main() {
 		createReport(flag.Args()[1:])
 	case "list", "l", "ls":
 		list()
-	case "tidy", "t":
-		tidy()
 	case "delete", "d", "del":
 		delete(flag.Args()[1:])
 	case "help", "h":
@@ -63,19 +62,23 @@ func fileExists(filename string) bool {
 
 func add(arguments []string) {
 	s := strings.Join(arguments, " ")
-	workTime, err := model.CreateWorkFromString(s)
+	task, err := todotxt.ParseTask(s)
 	util.Check(err)
+	task.Complete()
 
 	file := file.TimesheetFile{Name: timesheetFilename}
-	file.AppendToFile(workTime)
-	fmt.Printf("Added: %s\n", workTime)
+	tasklist := file.ReadFile()
+	tasklist.AddTask(task)
+	file.WriteFile(tasklist)
+
+	fmt.Printf("Added: %s\n", task)
 }
 
 func list() {
 	file := file.TimesheetFile{Name: timesheetFilename}
-	workItems := file.ReadFile()
-	for _, workItem := range workItems {
-		fmt.Printf("%4d: %s\n", workItem.Index, workItem.String())
+	tasklist := file.ReadFile()
+	for _, task := range tasklist {
+		fmt.Printf("%d: %s\n", task.Id, task)
 	}
 }
 
@@ -84,20 +87,12 @@ func delete(arguments []string) {
 	index, err := strconv.Atoi(arguments[0])
 	util.Check(err)
 
-	index--
 	file := file.TimesheetFile{Name: timesheetFilename}
-	workList := file.ReadFile()
-	newWorkList, deletedWorkItem, err := util.DeleteFromArray(workList, index)
+	tasklist := file.ReadFile()
+	err = tasklist.RemoveTaskById(index)
 	util.Check(err)
 
-	file.WriteFile(newWorkList)
-	fmt.Printf("Deleted: %s\n", deletedWorkItem)
-}
-
-func tidy() {
-	file := file.TimesheetFile{Name: timesheetFilename}
-	workItems := file.ReadFile()
-	file.WriteFile(workItems)
+	file.WriteFile(tasklist)
 }
 
 func createReport(arguments []string) {
@@ -110,8 +105,8 @@ func createReport(arguments []string) {
 		reportName = "simple"
 	}
 	file := file.TimesheetFile{Name: timesheetFilename}
-	workItems := file.ReadFile()
-	reportItems := report.Create(workItems, workTime.Date, workTime.Hours)
+	tasklist := file.ReadFile()
+	reportItems := report.Create(tasklist, workTime.Date, workTime.Hours)
 
 	var theReport = ""
 	switch workTime.Task {
@@ -120,7 +115,6 @@ func createReport(arguments []string) {
 	default:
 		theReport = report.Simple(reportItems)
 	}
-	//theReport := report.Simple(reportItems)
 
 	fmt.Print(theReport)
 }
@@ -139,12 +133,14 @@ func help() {
 	fmt.Println()
 	fmt.Println(`Actions:
 
-	add|a [date] duration task
+	add|a [date] +<project> [task:<taskname>] hours:<number>
 	    Description:
-	        Appends a new task with the given duration to the timesheet file
+	        Appends a new project/task with the given duration to the timesheet file
 		Arguments:
-            duration: <number>[h|m], examples: 1h (one hour), 30m (30 minutes)
-            task: free text string
+			date: the date the work was performed. Defaults to today.
+            project: name of the project
+			taskname: free text string
+			number: the hours worked (float)
 	
 	list|ls|l
 	    Description:
@@ -155,11 +151,7 @@ func help() {
 	    Description:
 		    Deletes the work identified by number. This number can found using the list action.
 		Arguments:
-		    number: the work item to delere
-
-	tidy|t
-	    Description:
-		    Cleans up the timesheet file. Note: this action will overwrite your timesheetfile.
+		    number: the work item to delete
 		
 	report|r [date] [period] [type]
 		Description:

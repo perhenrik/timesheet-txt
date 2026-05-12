@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -21,7 +21,7 @@ var commandName = ""
 var timesheetFilename = ""
 
 func main() {
-	commandName = path.Base(os.Args[0])
+	commandName = filepath.Base(os.Args[0])
 
 	flag.Usage = func() {
 		usageWithHelp()
@@ -44,20 +44,13 @@ func main() {
 	case "list", "l", "ls":
 		list()
 	case "delete", "d", "del":
-		delete(flag.Args()[1:])
+		deleteEntry(flag.Args()[1:])
 	case "help", "h":
 		help()
 	default:
 		fmt.Println("action provided but not defined: " + flag.Arg(0))
 		usageWithHelp()
 	}
-}
-
-func fileExists(filename string) bool {
-	if _, err := os.Stat(filename); err == nil {
-		return true
-	}
-	return false
 }
 
 func add(arguments []string) {
@@ -82,7 +75,7 @@ func list() {
 	}
 }
 
-func delete(arguments []string) {
+func deleteEntry(arguments []string) {
 	arguments = util.MakeSureArrayHasEnoughElements(arguments, 1)
 	index, err := strconv.Atoi(arguments[0])
 	util.Check(err)
@@ -100,16 +93,17 @@ func createReport(arguments []string) {
 	workTime, err := model.CreateWorkFromString(s)
 	util.Check(err)
 
-	reportName := workTime.Task;
-	if(reportName == "") {
-		reportName = "simple"
+	reportType := workTime.Task
+	if reportType == "" {
+		reportType = "simple"
 	}
+
 	file := file.TimesheetFile{Name: timesheetFilename}
 	tasklist := file.ReadFile()
 	reportItems := report.Create(tasklist, workTime.Date, workTime.Hours)
 
-	var theReport = ""
-	switch workTime.Task {
+	var theReport string
+	switch reportType {
 	case "summary":
 		theReport = report.Summary(reportItems)
 	default:
@@ -144,12 +138,12 @@ func help() {
 	
 	list|ls|l
 	    Description:
-	        Lists all work registered, more or less a cat of the timesheet file.
-            All lines are prepended with a number wich can be used in other action, ie. delete.
+	        Lists all registered work items, effectively a cat of the timesheet file.
+            All lines are prepended with an ID that can be used in other actions, e.g. delete.
 	
 	delete|del|d [number]
 	    Description:
-		    Deletes the work identified by number. This number can found using the list action.
+		    Deletes the work identified by number. This number can be found using the list action.
 		Arguments:
 		    number: the work item to delete
 		
@@ -157,8 +151,8 @@ func help() {
 		Description:
 			Prints a time report. All tasks on the same date are summarized.
 		Arguments
-			date:   the date wich is the end of the report period, defaults to now.
-			period: the duration of the report counting backwords from date. Defaults to 5 days (5d)
+			date:   the date that is the end of the report period, defaults to now.
+			period: the duration of the report counting backwards from date. Defaults to 5 days (5d)
 			type:	The report type (simple|summary). Defaults to 'simple'
   `)
 }

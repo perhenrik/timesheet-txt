@@ -62,7 +62,7 @@ func Simple(reportItems []model.Work) string {
 	return report.String()
 }
 
-//Create returns an array of sorted report items
+// Create returns an array of sorted report items
 func Create(tasklist todotxt.TaskList, endTime time.Time, taskDuration float64) (items []model.Work) {
 	itemMap := make(map[string]float64)
 	startTime := endTime.Add(time.Hour * -time.Duration(taskDuration))

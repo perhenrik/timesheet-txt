@@ -1,33 +1,33 @@
-# Based on https://sahilm.com/makefiles-for-golang/
+BINARY ?= timesheet
+VERSION ?= 0.1.0
+PLATFORMS := darwin linux windows
+ARCH := amd64 arm64
 
-PKGS := $(shell go list ./... | grep -v /vendor)
+.PHONY: fmt vet test lint build clean release
 
-.PHONY: test
+fmt:
+	go fmt ./...
+
+vet:
+	go vet ./...
+
 test:
-	go test -coverprofile=coverage.out $(PKGS)
+	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
-	#go tool cover -html=coverage.out
 
-BIN_DIR := $(GOPATH)/bin
-GOMETALINTER := $(BIN_DIR)/gometalinter
+lint: fmt vet
 
-$(GOMETALINTER):
-	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install &> /dev/null
+build:
+	mkdir -p bin
+	go build -o bin/$(BINARY) .
 
-.PHONY: lint
-lint: $(GOMETALINTER)
-	gometalinter ./... --vendor
+clean:
+	rm -rf bin release coverage.out timesheet
 
-BINARY := timesheet
-VERSION ?= 0.1
-PLATFORMS := windows linux darwin
-os = $(word 1, $@)
-
-.PHONY: $(PLATFORMS)
-$(PLATFORMS):
+release:
 	mkdir -p release
-	GOOS=$(os) GOARCH=amd64 go build -o release/$(BINARY)-$(VERSION)-$(os)-amd64
-
-.PHONY: release
-release: windows linux darwin
+	for os in $(PLATFORMS); do \
+		for arch in $(ARCH); do \
+			GOOS=$$os GOARCH=$$arch go build -o release/$(BINARY)-$(VERSION)-$$os-$$arch . ; \
+		done ; \
+	done

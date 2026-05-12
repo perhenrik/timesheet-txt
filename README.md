@@ -64,6 +64,10 @@ make release   # build release binaries (darwin/linux/windows, amd64+arm64)
 
 `timesheet-0.1.0-darwin-arm64`
 
+## CI
+
+GitHub Actions runs `make lint`, `make test`, and `make build` on pushes and pull requests.
+
 ## Usage
 
 ```text

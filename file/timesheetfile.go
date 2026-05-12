@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/JamesClonk/go-todotxt"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/perhenrik/timesheet-txt/util"
 )
 
@@ -21,7 +20,7 @@ func (f TimesheetFile) String() string {
 
 // DefaultFileName returns the default timesheet filename
 func DefaultFileName() string {
-	homeDirectory, err := homedir.Dir()
+	homeDirectory, err := os.UserHomeDir()
 	util.Check(err)
 	return filepath.Join(homeDirectory, ".timesheet.txt")
 }

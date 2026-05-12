@@ -62,7 +62,7 @@ make release   # build release binaries (darwin/linux/windows, amd64+arm64)
 
 `make release` writes binaries to `release/` with names like:
 
-`timesheet-0.1.0-darwin-arm64`
+`timesheet-0.2.0-darwin-arm64`
 
 ## CI
 

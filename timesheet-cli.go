@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JamesClonk/go-todotxt"
 	"github.com/perhenrik/timesheet-txt/model"
@@ -19,6 +21,10 @@ import (
 
 var commandName = ""
 var timesheetFilename = ""
+
+const stopwatchTagKey = "clock"
+const stopwatchTagValueRunning = "running"
+const stopwatchStartTagKey = "start"
 
 func main() {
 	commandName = filepath.Base(os.Args[0])
@@ -39,6 +45,10 @@ func main() {
 	switch flag.Arg(0) {
 	case "add", "a":
 		add(flag.Args()[1:])
+	case "start", "st":
+		startStopwatch(flag.Args()[1:])
+	case "stop", "sp":
+		stopStopwatch()
 	case "report", "r":
 		createReport(flag.Args()[1:])
 	case "list", "l", "ls":
@@ -65,6 +75,55 @@ func add(arguments []string) {
 	file.WriteFile(tasklist)
 
 	fmt.Printf("Added: %s\n", task)
+}
+
+func startStopwatch(arguments []string) {
+	taskText := strings.TrimSpace(strings.Join(arguments, " "))
+	if taskText == "" {
+		fmt.Println("missing task text")
+		usageWithHelp()
+		return
+	}
+
+	now := time.Now().UTC()
+	file := file.TimesheetFile{Name: timesheetFilename}
+	tasklist := file.ReadFile()
+
+	stoppedCount, _, err := stopRunningTasks(&tasklist, now)
+	util.Check(err)
+
+	task, err := todotxt.ParseTask(taskText)
+	util.Check(err)
+	markTaskAsRunning(task, now)
+	tasklist.AddTask(task)
+	file.WriteFile(tasklist)
+
+	if stoppedCount > 0 {
+		fmt.Printf("Stopped %d running stopwatch and started a new one.\n", stoppedCount)
+	}
+	fmt.Printf("Started stopwatch for: %s\n", task.Task())
+}
+
+func stopStopwatch() {
+	now := time.Now().UTC()
+	file := file.TimesheetFile{Name: timesheetFilename}
+	tasklist := file.ReadFile()
+
+	stoppedCount, totalHours, err := stopRunningTasks(&tasklist, now)
+	util.Check(err)
+
+	if stoppedCount == 0 {
+		fmt.Println("No running stopwatch found.")
+		return
+	}
+
+	file.WriteFile(tasklist)
+	if stoppedCount == 1 {
+		fmt.Printf("Stopped stopwatch (%.2f hours).\n", totalHours)
+		return
+	}
+
+	fmt.Printf("Stopped %d running stopwatches (%.2f hours total).\n", stoppedCount, totalHours)
 }
 
 func list() {
@@ -113,6 +172,73 @@ func createReport(arguments []string) {
 	fmt.Print(theReport)
 }
 
+func stopRunningTasks(tasklist *todotxt.TaskList, stopAt time.Time) (stoppedCount int, totalHours float64, err error) {
+	for i := range *tasklist {
+		task := (*tasklist)[i]
+		if !isRunningTask(task) {
+			continue
+		}
+
+		hours, stopErr := markTaskAsStopped(&task, stopAt)
+		if stopErr != nil {
+			return stoppedCount, totalHours, stopErr
+		}
+
+		(*tasklist)[i] = task
+		stoppedCount++
+		totalHours += hours
+	}
+
+	return stoppedCount, totalHours, nil
+}
+
+func isRunningTask(task todotxt.Task) bool {
+	return !task.Completed && task.AdditionalTags != nil && task.AdditionalTags[stopwatchTagKey] == stopwatchTagValueRunning
+}
+
+func markTaskAsRunning(task *todotxt.Task, startedAt time.Time) {
+	if task.AdditionalTags == nil {
+		task.AdditionalTags = make(map[string]string)
+	}
+
+	task.Completed = false
+	task.CompletedDate = time.Time{}
+	delete(task.AdditionalTags, "hours")
+	task.AdditionalTags[stopwatchTagKey] = stopwatchTagValueRunning
+	task.AdditionalTags[stopwatchStartTagKey] = strconv.FormatInt(startedAt.Unix(), 10)
+}
+
+func markTaskAsStopped(task *todotxt.Task, stoppedAt time.Time) (hours float64, err error) {
+	if !isRunningTask(*task) {
+		return 0, errors.New("task is not running")
+	}
+
+	startedAtRaw := task.AdditionalTags[stopwatchStartTagKey]
+	if startedAtRaw == "" {
+		return 0, errors.New("running task has no start timestamp")
+	}
+
+	startedAtUnix, parseErr := strconv.ParseInt(startedAtRaw, 10, 64)
+	if parseErr != nil {
+		return 0, parseErr
+	}
+
+	startedAt := time.Unix(startedAtUnix, 0).UTC()
+	if stoppedAt.Before(startedAt) {
+		return 0, errors.New("stop time is before start time")
+	}
+
+	hours = stoppedAt.Sub(startedAt).Hours()
+
+	task.Complete()
+	task.CompletedDate = stoppedAt
+	delete(task.AdditionalTags, stopwatchTagKey)
+	delete(task.AdditionalTags, stopwatchStartTagKey)
+	task.AdditionalTags["hours"] = strconv.FormatFloat(hours, 'f', 4, 64)
+
+	return hours, nil
+}
+
 func usage() {
 	fmt.Println("Usage: " + commandName + " [-f filename] action [parameters]")
 }
@@ -135,6 +261,15 @@ func help() {
             project: name of the project
 			taskname: free text string
 			number: the hours worked (float)
+
+	start|st +<project> [task:<taskname>]
+	    Description:
+	        Starts a stopwatch for a new task.
+	        If another stopwatch is running, it is stopped automatically.
+
+	stop|sp
+	    Description:
+	        Stops the running stopwatch and stores worked hours.
 	
 	list|ls|l
 	    Description:

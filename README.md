@@ -91,6 +91,51 @@ Example:
 timesheet add 2026-05-12 +client-a task:api hours:6.5
 ```
 
+#### Start stopwatch
+
+```bash
+timesheet start +<project> [task:<taskname>]
+```
+
+Examples:
+
+```bash
+timesheet start +client-a task:api
+timesheet start +internal task:planning
+```
+
+If a stopwatch is already running, it is stopped automatically before the new one starts.
+
+#### Stop stopwatch
+
+```bash
+timesheet stop
+```
+
+Stops the running stopwatch and writes the calculated `hours` into the timesheet entry.
+
+#### TUI
+
+```bash
+timesheet tui
+```
+
+Starts a report-first terminal UI where you can:
+
+- view report output for date/period/type
+- start and stop stopwatch sessions
+- choose project/task from existing values or type your own
+
+Useful keys in TUI:
+
+- `tab` / `shift+tab`: move focus
+- `enter` or `r`: refresh report
+- `t`: toggle report type (`simple`/`summary`)
+- `s`: start stopwatch from selected project/task
+- `x`: stop running stopwatch
+- `n` / `p`: cycle known project/task options
+- `q`: quit
+
 #### List
 
 ```bash

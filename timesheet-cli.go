@@ -45,6 +45,8 @@ func main() {
 	switch flag.Arg(0) {
 	case "add", "a":
 		add(flag.Args()[1:])
+	case "tui", "ui":
+		runTUI()
 	case "start", "st":
 		startStopwatch(flag.Args()[1:])
 	case "stop", "sp":
@@ -85,31 +87,17 @@ func startStopwatch(arguments []string) {
 		return
 	}
 
-	now := time.Now().UTC()
-	file := file.TimesheetFile{Name: timesheetFilename}
-	tasklist := file.ReadFile()
-
-	stoppedCount, _, err := stopRunningTasks(&tasklist, now)
+	stoppedCount, startedTask, err := startStopwatchTask(taskText, time.Now().UTC())
 	util.Check(err)
-
-	task, err := todotxt.ParseTask(taskText)
-	util.Check(err)
-	markTaskAsRunning(task, now)
-	tasklist.AddTask(task)
-	file.WriteFile(tasklist)
 
 	if stoppedCount > 0 {
 		fmt.Printf("Stopped %d running stopwatch and started a new one.\n", stoppedCount)
 	}
-	fmt.Printf("Started stopwatch for: %s\n", task.Task())
+	fmt.Printf("Started stopwatch for: %s\n", startedTask)
 }
 
 func stopStopwatch() {
-	now := time.Now().UTC()
-	file := file.TimesheetFile{Name: timesheetFilename}
-	tasklist := file.ReadFile()
-
-	stoppedCount, totalHours, err := stopRunningTasks(&tasklist, now)
+	stoppedCount, totalHours, err := stopStopwatchTasks(time.Now().UTC())
 	util.Check(err)
 
 	if stoppedCount == 0 {
@@ -117,7 +105,6 @@ func stopStopwatch() {
 		return
 	}
 
-	file.WriteFile(tasklist)
 	if stoppedCount == 1 {
 		fmt.Printf("Stopped stopwatch (%.2f hours).\n", totalHours)
 		return
@@ -170,6 +157,43 @@ func createReport(arguments []string) {
 	}
 
 	fmt.Print(theReport)
+}
+
+func startStopwatchTask(taskText string, now time.Time) (stoppedCount int, startedTask string, err error) {
+	timesheetFile := file.TimesheetFile{Name: timesheetFilename}
+	tasklist := timesheetFile.ReadFile()
+
+	stoppedCount, _, err = stopRunningTasks(&tasklist, now)
+	if err != nil {
+		return 0, "", err
+	}
+
+	task, err := todotxt.ParseTask(taskText)
+	if err != nil {
+		return 0, "", err
+	}
+
+	markTaskAsRunning(task, now)
+	tasklist.AddTask(task)
+	timesheetFile.WriteFile(tasklist)
+
+	return stoppedCount, task.Task(), nil
+}
+
+func stopStopwatchTasks(now time.Time) (stoppedCount int, totalHours float64, err error) {
+	timesheetFile := file.TimesheetFile{Name: timesheetFilename}
+	tasklist := timesheetFile.ReadFile()
+
+	stoppedCount, totalHours, err = stopRunningTasks(&tasklist, now)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if stoppedCount > 0 {
+		timesheetFile.WriteFile(tasklist)
+	}
+
+	return stoppedCount, totalHours, nil
 }
 
 func stopRunningTasks(tasklist *todotxt.TaskList, stopAt time.Time) (stoppedCount int, totalHours float64, err error) {
@@ -270,6 +294,10 @@ func help() {
 	stop|sp
 	    Description:
 	        Stops the running stopwatch and stores worked hours.
+
+	tui|ui
+	    Description:
+	        Opens a terminal UI with report view and stopwatch controls.
 	
 	list|ls|l
 	    Description:

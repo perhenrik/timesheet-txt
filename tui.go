@@ -251,39 +251,17 @@ func (m tuiModel) View() string {
 		return lipgloss.NewStyle().Foreground(errorColor).Padding(1, 2).Render(msg)
 	}
 
-	header := m.renderHeader()
 	footer := m.renderFooter()
 
-	bodyHeight := m.height - lipgloss.Height(header) - lipgloss.Height(footer)
+	bodyHeight := m.height - lipgloss.Height(footer)
 	if bodyHeight < 8 {
 		bodyHeight = 8
 	}
 
 	body := m.renderBody(bodyHeight)
-	content := lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
+	content := lipgloss.JoinVertical(lipgloss.Left, body, footer)
 
 	return lipgloss.NewStyle().Background(bgColor).Foreground(textColor).Render(content)
-}
-
-func (m tuiModel) renderHeader() string {
-	title := lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render("timesheet-txt - report-first TUI")
-	filters := []string{
-		m.renderInput("Date", m.dateInput, m.focusIndex == 0),
-		m.renderInput("Period", m.periodInput, m.focusIndex == 1),
-		lipgloss.NewStyle().Foreground(mutedColor).Render("Type:") + " " + lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render(strings.ToUpper(m.reportType)),
-	}
-
-	line1 := lipgloss.NewStyle().Width(m.width - 2).Render(title)
-	line2 := lipgloss.NewStyle().Width(m.width - 2).Foreground(textColor).Render(strings.Join(filters, "   "))
-	line3 := lipgloss.NewStyle().Width(m.width - 2).Render(m.renderValidationHintLine())
-
-	return lipgloss.NewStyle().
-		Padding(0, 1).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderColor).
-		Background(panelBgColor).
-		Width(m.width).
-		Render(lipgloss.JoinVertical(lipgloss.Left, line1, line2, line3))
 }
 
 func (m tuiModel) renderValidationHintLine() string {
@@ -324,6 +302,21 @@ func (m tuiModel) renderBody(height int) string {
 }
 
 func (m tuiModel) renderLeftPane(width int, height int) string {
+	panelStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(borderColor).
+		Background(panelBgColor).
+		Padding(1, 1)
+
+	innerWidth := width - panelStyle.GetHorizontalFrameSize()
+	innerHeight := height - panelStyle.GetVerticalFrameSize()
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+
 	projectField := m.renderInput("Project", m.projectInput, m.focusIndex == 2)
 	taskField := m.renderInput("Task", m.taskInput, m.focusIndex == 3)
 
@@ -361,42 +354,57 @@ func (m tuiModel) renderLeftPane(width int, height int) string {
 		lipgloss.NewStyle().Foreground(textColor).Render(tasks),
 	}
 
-	return lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderColor).
-		Background(panelBgColor).
-		Padding(1, 1).
-		Width(width).
-		Height(height).
+	return panelStyle.
+		Width(innerWidth).
+		Height(innerHeight).
 		Render(strings.Join(content, "\n"))
 }
 
 func (m tuiModel) renderRightPane(width int, height int) string {
+	panelStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(borderColor).
+		Background(panelBgColor).
+		Padding(1, 1)
+
+	innerWidth := width - panelStyle.GetHorizontalFrameSize()
+	innerHeight := height - panelStyle.GetVerticalFrameSize()
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+
 	title := lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render("Report")
+	filters := []string{
+		m.renderInput("Date", m.dateInput, m.focusIndex == 0),
+		m.renderInput("Period", m.periodInput, m.focusIndex == 1),
+		lipgloss.NewStyle().Foreground(mutedColor).Render("Type:") + " " + lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render(strings.ToUpper(m.reportType)),
+	}
+	filterLine := lipgloss.NewStyle().Foreground(textColor).Render(strings.Join(filters, "   "))
+	hintLine := m.renderValidationHintLine()
+	topSection := lipgloss.JoinVertical(lipgloss.Left, title, filterLine, hintLine, "")
+
 	reportBody := strings.TrimSpace(m.reportText)
 	if reportBody == "" {
 		reportBody = "(no report rows for selected period)"
 	}
 
-	reportHeight := height - 4
+	reportHeight := innerHeight - lipgloss.Height(topSection)
 	if reportHeight < 3 {
 		reportHeight = 3
 	}
-	reportBody = fitTextBlock(reportBody, width-4, reportHeight)
+	reportBody = fitTextBlock(reportBody, innerWidth, reportHeight)
 
 	content := lipgloss.JoinVertical(lipgloss.Left,
-		title,
-		"",
+		topSection,
 		lipgloss.NewStyle().Foreground(textColor).Render(reportBody),
 	)
 
-	return lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderColor).
-		Background(panelBgColor).
-		Padding(1, 1).
-		Width(width).
-		Height(height).
+	return panelStyle.
+		Width(innerWidth).
+		Height(innerHeight).
 		Render(content)
 }
 
@@ -412,13 +420,20 @@ func (m tuiModel) renderFooter() string {
 		"q: quit",
 	}
 
-	return lipgloss.NewStyle().
+	footerStyle := lipgloss.NewStyle().
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
 		Background(panelBgColor).
-		Foreground(mutedColor).
-		Width(m.width).
+		Foreground(mutedColor)
+
+	innerWidth := m.width - footerStyle.GetHorizontalFrameSize()
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+
+	return footerStyle.
+		Width(innerWidth).
 		Render(strings.Join(help, "   "))
 }
 

@@ -18,14 +18,14 @@ import (
 )
 
 var (
-	bgColor      = lipgloss.Color("#1F2933")
-	panelBgColor = lipgloss.Color("#273444")
-	borderColor  = lipgloss.Color("#486581")
-	textColor    = lipgloss.Color("#E5E7EB")
-	mutedColor   = lipgloss.Color("#9AA5B1")
-	accentColor  = lipgloss.Color("#F59E0B")
-	successColor = lipgloss.Color("#22C55E")
-	errorColor   = lipgloss.Color("#F97316")
+	bgColor      lipgloss.TerminalColor = lipgloss.NoColor{}
+	panelBgColor lipgloss.TerminalColor = lipgloss.NoColor{}
+	borderColor  lipgloss.TerminalColor = lipgloss.AdaptiveColor{Light: "#7A7A7A", Dark: "#5A5A5A"}
+	textColor    lipgloss.TerminalColor = lipgloss.AdaptiveColor{Light: "#111111", Dark: "#E5E7EB"}
+	mutedColor   lipgloss.TerminalColor = lipgloss.AdaptiveColor{Light: "#5F6368", Dark: "#9AA5B1"}
+	accentColor  lipgloss.TerminalColor = lipgloss.AdaptiveColor{Light: "#A24B00", Dark: "#F59E0B"}
+	successColor lipgloss.TerminalColor = lipgloss.AdaptiveColor{Light: "#0A7A24", Dark: "#22C55E"}
+	errorColor   lipgloss.TerminalColor = lipgloss.AdaptiveColor{Light: "#B63A00", Dark: "#F97316"}
 )
 
 type tuiRefreshMsg struct {

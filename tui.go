@@ -275,6 +275,7 @@ func (m tuiModel) renderHeader() string {
 
 	line1 := lipgloss.NewStyle().Width(m.width - 2).Render(title)
 	line2 := lipgloss.NewStyle().Width(m.width - 2).Foreground(textColor).Render(strings.Join(filters, "   "))
+	line3 := lipgloss.NewStyle().Width(m.width - 2).Render(m.renderValidationHintLine())
 
 	return lipgloss.NewStyle().
 		Padding(0, 1).
@@ -282,7 +283,28 @@ func (m tuiModel) renderHeader() string {
 		BorderForeground(borderColor).
 		Background(panelBgColor).
 		Width(m.width).
-		Render(lipgloss.JoinVertical(lipgloss.Left, line1, line2))
+		Render(lipgloss.JoinVertical(lipgloss.Left, line1, line2, line3))
+}
+
+func (m tuiModel) renderValidationHintLine() string {
+	dateText, dateIsError := dateValidationHint(m.dateInput.Value())
+	periodText, periodIsError := periodValidationHint(m.periodInput.Value())
+
+	dateStyle := lipgloss.NewStyle().Foreground(mutedColor)
+	periodStyle := lipgloss.NewStyle().Foreground(mutedColor)
+	if dateIsError {
+		dateStyle = lipgloss.NewStyle().Foreground(errorColor)
+	}
+	if periodIsError {
+		periodStyle = lipgloss.NewStyle().Foreground(errorColor)
+	}
+
+	datePrefix := strings.Repeat(" ", len("Date: "))
+	periodPrefix := strings.Repeat(" ", len("Period: "))
+
+	left := datePrefix + dateStyle.Render(dateText)
+	right := periodPrefix + periodStyle.Render(periodText)
+	return left + "   " + right
 }
 
 func (m tuiModel) renderBody(height int) string {
@@ -413,6 +435,10 @@ func (m *tuiModel) refreshReportCmd() tea.Cmd {
 		m.statusText = "Date must be valid (YYYY-MM-DD, also accepts YYYY-M-D)."
 		return nil
 	}
+	if err := validatePeriodInput(m.periodInput.Value()); err != nil {
+		m.statusText = "Period must be valid (examples: 5d, 8h, 30m, 2w)."
+		return nil
+	}
 
 	return refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
 }
@@ -534,6 +560,125 @@ func formatDateDigits(digits string) string {
 func validateDateInput(value string) error {
 	_, err := parseFlexibleDate(value)
 	return err
+}
+
+func validatePeriodInput(value string) error {
+	_, err := parseReportPeriod(value)
+	return err
+}
+
+func dateValidationHint(value string) (text string, isError bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "YYYY-MM-DD (also YYYY-M-D)", false
+	}
+
+	if validateDateInput(trimmed) == nil {
+		return "looks good", false
+	}
+
+	if isPotentialDateInput(trimmed) {
+		return "continue typing", false
+	}
+
+	return "invalid date", true
+}
+
+func periodValidationHint(value string) (text string, isError bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "default 5d", false
+	}
+
+	if validatePeriodInput(trimmed) == nil {
+		return "looks good", false
+	}
+
+	return "use 5d, 8h, 30m, 2w", true
+}
+
+func isPotentialDateInput(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return true
+	}
+
+	for _, r := range trimmed {
+		if (r < '0' || r > '9') && r != '-' {
+			return false
+		}
+	}
+
+	if strings.Contains(trimmed, "-") {
+		parts := strings.Split(trimmed, "-")
+		if len(parts) > 3 {
+			return false
+		}
+
+		yearPart := parts[0]
+		if len(yearPart) > 4 {
+			return false
+		}
+		if !isAllDigits(yearPart) {
+			return false
+		}
+
+		if len(parts) >= 2 {
+			monthPart := parts[1]
+			if len(monthPart) > 2 {
+				return false
+			}
+			if monthPart != "" && !isAllDigits(monthPart) {
+				return false
+			}
+			if len(monthPart) == 2 {
+				month, err := strconv.Atoi(monthPart)
+				if err != nil || month < 1 || month > 12 {
+					return false
+				}
+			}
+		}
+
+		if len(parts) == 3 {
+			dayPart := parts[2]
+			if len(dayPart) > 2 {
+				return false
+			}
+			if dayPart != "" && !isAllDigits(dayPart) {
+				return false
+			}
+			if len(dayPart) == 2 {
+				day, err := strconv.Atoi(dayPart)
+				if err != nil || day < 1 || day > 31 {
+					return false
+				}
+			}
+		}
+
+		if len(parts) == 3 && len(yearPart) == 4 && len(parts[1]) == 2 && len(parts[2]) == 2 {
+			year, _ := strconv.Atoi(yearPart)
+			month, _ := strconv.Atoi(parts[1])
+			day, _ := strconv.Atoi(parts[2])
+			candidate := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
+			if candidate.Year() != year || int(candidate.Month()) != month || candidate.Day() != day {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	digits := extractDateDigits(trimmed)
+	return len(digits) <= 8 && isPotentialDateDigits(digits)
+}
+
+func isAllDigits(value string) bool {
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func isPotentialDateDigits(digits string) bool {

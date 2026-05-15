@@ -85,3 +85,32 @@ func TestValidateDateInputAcceptsHyphenSeparated(t *testing.T) {
 		t.Fatalf("validateDateInput() error = %v, want nil", err)
 	}
 }
+
+func TestPeriodValidationHint(t *testing.T) {
+	text, isError := periodValidationHint("5d")
+	if isError || text != "looks good" {
+		t.Fatalf("periodValidationHint(5d) = (%q, %v), want (looks good, false)", text, isError)
+	}
+
+	text, isError = periodValidationHint("5x")
+	if !isError {
+		t.Fatalf("periodValidationHint(5x) should be error")
+	}
+}
+
+func TestDateValidationHint(t *testing.T) {
+	text, isError := dateValidationHint("2026-05-13")
+	if isError || text != "looks good" {
+		t.Fatalf("dateValidationHint(valid) = (%q, %v), want (looks good, false)", text, isError)
+	}
+
+	text, isError = dateValidationHint("2026-5")
+	if isError || text != "continue typing" {
+		t.Fatalf("dateValidationHint(partial) = (%q, %v), want (continue typing, false)", text, isError)
+	}
+
+	text, isError = dateValidationHint("2026-99-99")
+	if !isError {
+		t.Fatalf("dateValidationHint(invalid) should be error")
+	}
+}

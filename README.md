@@ -138,6 +138,7 @@ Useful keys in TUI:
 - `q`: quit
 
 Date input accepts digits and `-`, auto-formats as `YYYY-MM-DD`, and supports flexible date entry like `2026-5-3`.
+Validation hints for date and period are shown directly under the filter row in the header.
 
 #### List
 

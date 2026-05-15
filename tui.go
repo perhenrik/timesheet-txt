@@ -122,6 +122,24 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "tab":
 			m.setFocus((m.focusIndex + 1) % 4)
 			return m, nil
+		case "down":
+			if m.focusIndex >= 2 {
+				m.applyNextOption()
+			} else {
+				m.setFocus((m.focusIndex + 1) % 4)
+			}
+			return m, nil
+		case "up":
+			if m.focusIndex >= 2 {
+				m.applyPreviousOption()
+			} else {
+				next := m.focusIndex - 1
+				if next < 0 {
+					next = 3
+				}
+				m.setFocus(next)
+			}
+			return m, nil
 		case "shift+tab", "backtab":
 			next := m.focusIndex - 1
 			if next < 0 {
@@ -131,7 +149,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "enter":
 			if m.focusIndex <= 1 {
-				return m, refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
+				return m, m.refreshReportCmd()
 			}
 
 			statusText, err := m.startStopwatchFromInputs()
@@ -140,12 +158,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.statusText = statusText
-			return m, refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
+			return m, m.refreshReportCmd()
 		case "ctrl+r", "r":
 			if key == "r" && m.focusIndex >= 2 {
 				break
 			}
-			return m, refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
+			return m, m.refreshReportCmd()
 		case "ctrl+t", "t":
 			if key == "t" && m.focusIndex >= 2 {
 				break
@@ -156,7 +174,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.reportType = "simple"
 			}
 			m.statusText = "Switched report type to " + m.reportType + "."
-			return m, refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
+			return m, m.refreshReportCmd()
 		case "ctrl+x", "x":
 			if key == "x" && m.focusIndex >= 2 {
 				break
@@ -167,7 +185,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.statusText = statusText
-			return m, refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
+			return m, m.refreshReportCmd()
 		case "ctrl+n", "n":
 			if key == "n" && m.focusIndex < 2 {
 				break
@@ -185,7 +203,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		switch m.focusIndex {
 		case 0:
-			m.dateInput, cmd = m.dateInput.Update(msg)
+			cmd = m.updateDateInput(msg)
 		case 1:
 			m.periodInput, cmd = m.periodInput.Update(msg)
 		case 2:
@@ -363,6 +381,7 @@ func (m tuiModel) renderRightPane(width int, height int) string {
 func (m tuiModel) renderFooter() string {
 	help := []string{
 		"tab/shift+tab: focus",
+		"up/down: focus or cycle",
 		"enter: refresh or start",
 		"r: refresh",
 		"t: type",
@@ -387,6 +406,183 @@ func (m tuiModel) renderInput(label string, input textinput.Model, focused bool)
 		labelStyle = lipgloss.NewStyle().Bold(true).Foreground(accentColor)
 	}
 	return labelStyle.Render(label+":") + " " + input.View()
+}
+
+func (m *tuiModel) refreshReportCmd() tea.Cmd {
+	if err := validateDateInput(m.dateInput.Value()); err != nil {
+		m.statusText = "Date must be valid (YYYY-MM-DD, also accepts YYYY-M-D)."
+		return nil
+	}
+
+	return refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
+}
+
+func (m *tuiModel) updateDateInput(msg tea.KeyMsg) tea.Cmd {
+	digits := extractDateDigits(m.dateInput.Value())
+
+	if msg.Type == tea.KeyRunes {
+		handled := false
+		for _, r := range msg.Runes {
+			if r == '-' {
+				handled = true
+				continue
+			}
+			if r < '0' || r > '9' {
+				continue
+			}
+			handled = true
+
+			candidate := normalizeDateDigits(digits + string(r))
+			if isPotentialDateDigits(candidate) {
+				digits = candidate
+			}
+		}
+		if handled {
+			m.setDateFromDigits(digits)
+			return nil
+		}
+		m.dateInput, _ = m.dateInput.Update(msg)
+		m.setDateFromDigits(extractDateDigits(m.dateInput.Value()))
+		return nil
+	}
+
+	switch msg.String() {
+	case "backspace", "ctrl+h", "delete":
+		if len(digits) > 0 {
+			digits = digits[:len(digits)-1]
+		}
+		m.setDateFromDigits(digits)
+	case "ctrl+u":
+		m.setDateFromDigits("")
+	default:
+		var cmd tea.Cmd
+		m.dateInput, cmd = m.dateInput.Update(msg)
+		m.setDateFromDigits(extractDateDigits(m.dateInput.Value()))
+		return cmd
+	}
+
+	return nil
+}
+
+func (m *tuiModel) setDateFromDigits(digits string) {
+	if len(digits) > 8 {
+		digits = digits[:8]
+	}
+
+	m.dateInput.SetValue(formatDateDigits(digits))
+	m.dateInput.CursorEnd()
+}
+
+func extractDateDigits(value string) string {
+	b := strings.Builder{}
+	for _, r := range value {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+
+	digits := b.String()
+	if len(digits) > 8 {
+		return digits[:8]
+	}
+
+	return digits
+}
+
+func normalizeDateDigits(digits string) string {
+	if len(digits) <= 4 {
+		return digits
+	}
+
+	if len(digits) == 5 {
+		monthTens := digits[4]
+		if monthTens > '1' {
+			return digits[:4] + "0" + string(monthTens)
+		}
+	}
+
+	if len(digits) == 7 {
+		dayTens := digits[6]
+		if dayTens > '3' {
+			return digits[:6] + "0" + string(dayTens)
+		}
+	}
+
+	if len(digits) > 8 {
+		return digits[:8]
+	}
+
+	return digits
+}
+
+func formatDateDigits(digits string) string {
+	if len(digits) < 4 {
+		return digits
+	}
+	if len(digits) == 4 {
+		return digits + "-"
+	}
+	if len(digits) < 6 {
+		return digits[:4] + "-" + digits[4:]
+	}
+	if len(digits) == 6 {
+		return digits[:4] + "-" + digits[4:6] + "-"
+	}
+	return digits[:4] + "-" + digits[4:6] + "-" + digits[6:]
+}
+
+func validateDateInput(value string) error {
+	_, err := parseFlexibleDate(value)
+	return err
+}
+
+func isPotentialDateDigits(digits string) bool {
+	if len(digits) == 0 {
+		return true
+	}
+	if len(digits) > 8 {
+		return false
+	}
+
+	for _, r := range digits {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+
+	if len(digits) >= 5 {
+		monthTens := digits[4]
+		if monthTens != '0' && monthTens != '1' {
+			return false
+		}
+	}
+
+	if len(digits) >= 6 {
+		month, err := strconv.Atoi(digits[4:6])
+		if err != nil || month < 1 || month > 12 {
+			return false
+		}
+	}
+
+	if len(digits) >= 7 {
+		dayTens := digits[6]
+		if dayTens < '0' || dayTens > '3' {
+			return false
+		}
+	}
+
+	if len(digits) == 8 {
+		day, err := strconv.Atoi(digits[6:8])
+		if err != nil || day < 1 || day > 31 {
+			return false
+		}
+		_, err = time.Parse("20060102", digits)
+		if err != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 func fitTextBlock(text string, width int, height int) string {
@@ -593,9 +789,67 @@ func parseReportDate(value string) (time.Time, error) {
 		return time.Now().UTC(), nil
 	}
 
-	parsed, err := time.Parse("2006-01-02", value)
+	parsed, err := parseFlexibleDate(value)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid date %q (expected YYYY-MM-DD)", value)
+	}
+
+	return parsed, nil
+}
+
+func parseFlexibleDate(value string) (time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, fmt.Errorf("date is required")
+	}
+
+	if strings.Contains(value, "-") {
+		parts := strings.Split(value, "-")
+		if len(parts) != 3 {
+			return time.Time{}, fmt.Errorf("invalid date format")
+		}
+
+		yearPart := strings.TrimSpace(parts[0])
+		monthPart := strings.TrimSpace(parts[1])
+		dayPart := strings.TrimSpace(parts[2])
+
+		if len(yearPart) != 4 || monthPart == "" || dayPart == "" {
+			return time.Time{}, fmt.Errorf("incomplete date")
+		}
+
+		year, err := strconv.Atoi(yearPart)
+		if err != nil {
+			return time.Time{}, err
+		}
+		month, err := strconv.Atoi(monthPart)
+		if err != nil || month < 1 || month > 12 {
+			return time.Time{}, fmt.Errorf("invalid month")
+		}
+		day, err := strconv.Atoi(dayPart)
+		if err != nil || day < 1 || day > 31 {
+			return time.Time{}, fmt.Errorf("invalid day")
+		}
+
+		candidate := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
+		if candidate.Year() != year || int(candidate.Month()) != month || candidate.Day() != day {
+			return time.Time{}, fmt.Errorf("invalid date")
+		}
+
+		return candidate, nil
+	}
+
+	digits := extractDateDigits(value)
+	if len(digits) != 8 {
+		return time.Time{}, fmt.Errorf("date must contain 8 digits")
+	}
+
+	if !isPotentialDateDigits(digits) {
+		return time.Time{}, fmt.Errorf("date is invalid")
+	}
+
+	parsed, err := time.Parse("20060102", digits)
+	if err != nil {
+		return time.Time{}, err
 	}
 
 	return parsed, nil

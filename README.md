@@ -129,12 +129,15 @@ Starts a report-first terminal UI where you can:
 Useful keys in TUI:
 
 - `tab` / `shift+tab`: move focus
+- `up` / `down`: move focus, or cycle project/task options when those fields are focused
 - `enter` or `r`: refresh report
 - `t`: toggle report type (`simple`/`summary`)
 - `s`: start stopwatch from selected project/task
 - `x`: stop running stopwatch
 - `n` / `p`: cycle known project/task options
 - `q`: quit
+
+Date input accepts digits and `-`, auto-formats as `YYYY-MM-DD`, and supports flexible date entry like `2026-5-3`.
 
 #### List
 

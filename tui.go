@@ -290,10 +290,10 @@ func (m tuiModel) renderBody(height int) string {
 	if m.width < 120 {
 		leftWidth = 36
 	}
-	rightWidth := m.width - leftWidth - 1
+	rightWidth := m.width - leftWidth
 	if rightWidth < 30 {
 		rightWidth = 30
-		leftWidth = m.width - rightWidth - 1
+		leftWidth = m.width - rightWidth
 	}
 
 	left := m.renderLeftPane(leftWidth, height)
@@ -308,8 +308,8 @@ func (m tuiModel) renderLeftPane(width int, height int) string {
 		Background(panelBgColor).
 		Padding(1, 1)
 
-	innerWidth := width - panelStyle.GetHorizontalFrameSize()
-	innerHeight := height - panelStyle.GetVerticalFrameSize()
+	innerWidth := width - panelStyle.GetHorizontalBorderSize()
+	innerHeight := height - panelStyle.GetVerticalBorderSize()
 	if innerWidth < 1 {
 		innerWidth = 1
 	}
@@ -367,8 +367,8 @@ func (m tuiModel) renderRightPane(width int, height int) string {
 		Background(panelBgColor).
 		Padding(1, 1)
 
-	innerWidth := width - panelStyle.GetHorizontalFrameSize()
-	innerHeight := height - panelStyle.GetVerticalFrameSize()
+	innerWidth := width - panelStyle.GetHorizontalBorderSize()
+	innerHeight := height - panelStyle.GetVerticalBorderSize()
 	if innerWidth < 1 {
 		innerWidth = 1
 	}
@@ -427,7 +427,7 @@ func (m tuiModel) renderFooter() string {
 		Background(panelBgColor).
 		Foreground(mutedColor)
 
-	innerWidth := m.width - footerStyle.GetHorizontalFrameSize()
+	innerWidth := m.width - footerStyle.GetHorizontalBorderSize()
 	if innerWidth < 1 {
 		innerWidth = 1
 	}

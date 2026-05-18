@@ -145,9 +145,10 @@ TUI colors adapt to your terminal theme (light/dark) and respect terminal defaul
 For TUI development with auto-rebuild/restart on file changes:
 
 ```bash
-brew install air
 make dev-tui
 ```
+
+`make dev-tui` runs a project-local watcher (`cmd/devtuiwatch`) that rebuilds and restarts `./tmp/timesheet tui` on Go file changes while preserving normal TUI keyboard input.
 
 #### List
 

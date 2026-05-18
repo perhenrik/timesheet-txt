@@ -455,7 +455,7 @@ func (m tuiModel) renderRightPane(width int, height int) string {
 	hintLine := m.renderValidationHintLine()
 	topSection := lipgloss.JoinVertical(lipgloss.Left, title, filterLine, hintLine, "")
 
-	reportBody := strings.TrimSpace(m.reportText)
+	reportBody := m.reportText
 	if reportBody == "" {
 		reportBody = "(no report rows for selected period)"
 	}

@@ -126,12 +126,16 @@ Starts a report-first terminal UI where you can:
 - view report output for date/period/type
 - start and stop stopwatch sessions
 - choose project/task from existing values or type your own
+- manually register hours on date/project/task (saved with the exact date entered in the manual form)
+- see running stopwatch status directly under stopwatch input fields
 
 Useful keys in TUI:
 
 - `tab` / `shift+tab`: move focus
 - `up` / `down`: move focus, or cycle project/task options when those fields are focused
-- `enter` or `r`: refresh report
+- `enter`: refresh report, start stopwatch, or add manual entry (depending on focus)
+- `m`: jump focus to manual entry form
+- `r`: refresh report
 - `t`: toggle report type (`simple`/`summary`)
 - `s`: start stopwatch from selected project/task
 - `x`: stop running stopwatch

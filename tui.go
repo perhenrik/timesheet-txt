@@ -42,6 +42,11 @@ type tuiModel struct {
 	projectInput textinput.Model
 	taskInput    textinput.Model
 
+	manualDateInput    textinput.Model
+	manualProjectInput textinput.Model
+	manualTaskInput    textinput.Model
+	manualHoursInput   textinput.Model
+
 	focusIndex int
 	reportType string
 
@@ -53,6 +58,9 @@ type tuiModel struct {
 	tasks        []string
 	projectIndex int
 	taskIndex    int
+
+	manualProjectIndex int
+	manualTaskIndex    int
 
 	width  int
 	height int
@@ -88,14 +96,39 @@ func newTUIModel() tuiModel {
 	taskInput.CharLimit = 30
 	taskInput.Width = 20
 
+	manualDateInput := textinput.New()
+	manualDateInput.Placeholder = "YYYY-MM-DD"
+	manualDateInput.SetValue(time.Now().UTC().Format("2006-01-02"))
+	manualDateInput.CharLimit = 10
+	manualDateInput.Width = 12
+
+	manualProjectInput := textinput.New()
+	manualProjectInput.Placeholder = "project"
+	manualProjectInput.CharLimit = 30
+	manualProjectInput.Width = 20
+
+	manualTaskInput := textinput.New()
+	manualTaskInput.Placeholder = "task"
+	manualTaskInput.CharLimit = 30
+	manualTaskInput.Width = 20
+
+	manualHoursInput := textinput.New()
+	manualHoursInput.Placeholder = "1.5"
+	manualHoursInput.CharLimit = 8
+	manualHoursInput.Width = 8
+
 	m := tuiModel{
-		dateInput:    dateInput,
-		periodInput:  periodInput,
-		projectInput: projectInput,
-		taskInput:    taskInput,
-		reportType:   "simple",
-		statusText:   "Report view loaded. Focus project/task and press Enter to start stopwatch.",
-		runningText:  "idle",
+		dateInput:          dateInput,
+		periodInput:        periodInput,
+		projectInput:       projectInput,
+		taskInput:          taskInput,
+		manualDateInput:    manualDateInput,
+		manualProjectInput: manualProjectInput,
+		manualTaskInput:    manualTaskInput,
+		manualHoursInput:   manualHoursInput,
+		reportType:         "simple",
+		statusText:         "Report view loaded. Use Enter in stopwatch or manual fields.",
+		runningText:        "idle",
 	}
 
 	m.setFocus(0)
@@ -120,22 +153,22 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "tab":
-			m.setFocus((m.focusIndex + 1) % 4)
+			m.setFocus((m.focusIndex + 1) % 8)
 			return m, nil
 		case "down":
-			if m.focusIndex >= 2 {
+			if m.canCycleFocusedOptions() {
 				m.applyNextOption()
 			} else {
-				m.setFocus((m.focusIndex + 1) % 4)
+				m.setFocus((m.focusIndex + 1) % 8)
 			}
 			return m, nil
 		case "up":
-			if m.focusIndex >= 2 {
+			if m.canCycleFocusedOptions() {
 				m.applyPreviousOption()
 			} else {
 				next := m.focusIndex - 1
 				if next < 0 {
-					next = 3
+					next = 7
 				}
 				m.setFocus(next)
 			}
@@ -143,13 +176,21 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "shift+tab", "backtab":
 			next := m.focusIndex - 1
 			if next < 0 {
-				next = 3
+				next = 7
 			}
 			m.setFocus(next)
 			return m, nil
 		case "enter":
 			if m.focusIndex <= 1 {
-				return m, m.refreshReportCmd()
+				return m, m.refreshReportCmd("Report updated.")
+			}
+			if m.focusIndex >= 4 {
+				statusText, err := m.addManualEntryFromInputs()
+				if err != nil {
+					m.statusText = "Manual add failed: " + err.Error()
+					return m, nil
+				}
+				return m, m.refreshReportCmd(statusText)
 			}
 
 			statusText, err := m.startStopwatchFromInputs()
@@ -157,13 +198,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.statusText = "Start failed: " + err.Error()
 				return m, nil
 			}
-			m.statusText = statusText
-			return m, m.refreshReportCmd()
+			return m, m.refreshReportCmd(statusText)
 		case "ctrl+r", "r":
 			if key == "r" && m.focusIndex >= 2 {
 				break
 			}
-			return m, m.refreshReportCmd()
+			return m, m.refreshReportCmd("Report updated.")
 		case "ctrl+t", "t":
 			if key == "t" && m.focusIndex >= 2 {
 				break
@@ -173,8 +213,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.reportType = "simple"
 			}
-			m.statusText = "Switched report type to " + m.reportType + "."
-			return m, m.refreshReportCmd()
+			return m, m.refreshReportCmd("Switched report type to " + m.reportType + ".")
 		case "ctrl+x", "x":
 			if key == "x" && m.focusIndex >= 2 {
 				break
@@ -184,20 +223,24 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.statusText = "Stop failed: " + err.Error()
 				return m, nil
 			}
-			m.statusText = statusText
-			return m, m.refreshReportCmd()
+			return m, m.refreshReportCmd(statusText)
 		case "ctrl+n", "n":
-			if key == "n" && m.focusIndex < 2 {
+			if key == "n" && !m.canCycleFocusedOptions() {
 				break
 			}
 			m.applyNextOption()
 			return m, nil
 		case "ctrl+p", "p":
-			if key == "p" && m.focusIndex < 2 {
+			if key == "p" && !m.canCycleFocusedOptions() {
 				break
 			}
 			m.applyPreviousOption()
 			return m, nil
+		case "m":
+			if m.focusIndex < 2 {
+				m.setFocus(4)
+				return m, nil
+			}
 		}
 
 		var cmd tea.Cmd
@@ -210,6 +253,14 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.projectInput, cmd = m.projectInput.Update(msg)
 		case 3:
 			m.taskInput, cmd = m.taskInput.Update(msg)
+		case 4:
+			cmd = m.updateManualDateInput(msg)
+		case 5:
+			m.manualProjectInput, cmd = m.manualProjectInput.Update(msg)
+		case 6:
+			m.manualTaskInput, cmd = m.manualTaskInput.Update(msg)
+		case 7:
+			m.manualHoursInput, cmd = m.manualHoursInput.Update(msg)
 		}
 
 		return m, cmd
@@ -234,6 +285,14 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.taskInput.Value() == "" && len(m.tasks) > 0 {
 			m.taskIndex = 0
 			m.taskInput.SetValue(m.tasks[m.taskIndex])
+		}
+		if m.manualProjectInput.Value() == "" && len(m.projects) > 0 {
+			m.manualProjectIndex = 0
+			m.manualProjectInput.SetValue(m.projects[m.manualProjectIndex])
+		}
+		if m.manualTaskInput.Value() == "" && len(m.tasks) > 0 {
+			m.manualTaskIndex = 0
+			m.manualTaskInput.SetValue(m.tasks[m.manualTaskIndex])
 		}
 		return m, nil
 	}
@@ -319,6 +378,10 @@ func (m tuiModel) renderLeftPane(width int, height int) string {
 
 	projectField := m.renderInput("Project", m.projectInput, m.focusIndex == 2)
 	taskField := m.renderInput("Task", m.taskInput, m.focusIndex == 3)
+	manualDateField := m.renderInput("Date", m.manualDateInput, m.focusIndex == 4)
+	manualProjectField := m.renderInput("Project", m.manualProjectInput, m.focusIndex == 5)
+	manualTaskField := m.renderInput("Task", m.manualTaskInput, m.focusIndex == 6)
+	manualHoursField := m.renderInput("Hours", m.manualHoursInput, m.focusIndex == 7)
 
 	projects := "- (none)"
 	if len(m.projects) > 0 {
@@ -340,9 +403,15 @@ func (m tuiModel) renderLeftPane(width int, height int) string {
 		"",
 		projectField,
 		taskField,
-		"",
 		lipgloss.NewStyle().Foreground(mutedColor).Render("Running:"),
 		lipgloss.NewStyle().Foreground(textColor).Render(m.runningText),
+		"",
+		lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render("Manual Entry"),
+		lipgloss.NewStyle().Foreground(mutedColor).Render("Press Enter in manual fields to add hours."),
+		manualDateField,
+		manualProjectField,
+		manualTaskField,
+		manualHoursField,
 		"",
 		lipgloss.NewStyle().Foreground(mutedColor).Render("Status:"),
 		statusStyle.Render(m.statusText),
@@ -412,7 +481,8 @@ func (m tuiModel) renderFooter() string {
 	help := []string{
 		"tab/shift+tab: focus",
 		"up/down: focus or cycle",
-		"enter: refresh or start",
+		"enter: refresh/start/add",
+		"m: jump manual entry",
 		"r: refresh",
 		"t: type",
 		"x: stop",
@@ -445,7 +515,7 @@ func (m tuiModel) renderInput(label string, input textinput.Model, focused bool)
 	return labelStyle.Render(label+":") + " " + input.View()
 }
 
-func (m *tuiModel) refreshReportCmd() tea.Cmd {
+func (m *tuiModel) refreshReportCmd(statusOnSuccess string) tea.Cmd {
 	if err := validateDateInput(m.dateInput.Value()); err != nil {
 		m.statusText = "Date must be valid (YYYY-MM-DD, also accepts YYYY-M-D)."
 		return nil
@@ -453,6 +523,9 @@ func (m *tuiModel) refreshReportCmd() tea.Cmd {
 	if err := validatePeriodInput(m.periodInput.Value()); err != nil {
 		m.statusText = "Period must be valid (examples: 5d, 8h, 30m, 2w)."
 		return nil
+	}
+	if statusOnSuccess != "" {
+		m.statusText = statusOnSuccess
 	}
 
 	return refreshTUICmd(m.dateInput.Value(), m.periodInput.Value(), m.reportType)
@@ -505,6 +578,53 @@ func (m *tuiModel) updateDateInput(msg tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
+func (m *tuiModel) updateManualDateInput(msg tea.KeyMsg) tea.Cmd {
+	digits := extractDateDigits(m.manualDateInput.Value())
+
+	if msg.Type == tea.KeyRunes {
+		handled := false
+		for _, r := range msg.Runes {
+			if r == '-' {
+				handled = true
+				continue
+			}
+			if r < '0' || r > '9' {
+				continue
+			}
+			handled = true
+
+			candidate := normalizeDateDigits(digits + string(r))
+			if isPotentialDateDigits(candidate) {
+				digits = candidate
+			}
+		}
+		if handled {
+			m.setManualDateFromDigits(digits)
+			return nil
+		}
+		m.manualDateInput, _ = m.manualDateInput.Update(msg)
+		m.setManualDateFromDigits(extractDateDigits(m.manualDateInput.Value()))
+		return nil
+	}
+
+	switch msg.String() {
+	case "backspace", "ctrl+h", "delete":
+		if len(digits) > 0 {
+			digits = digits[:len(digits)-1]
+		}
+		m.setManualDateFromDigits(digits)
+	case "ctrl+u":
+		m.setManualDateFromDigits("")
+	default:
+		var cmd tea.Cmd
+		m.manualDateInput, cmd = m.manualDateInput.Update(msg)
+		m.setManualDateFromDigits(extractDateDigits(m.manualDateInput.Value()))
+		return cmd
+	}
+
+	return nil
+}
+
 func (m *tuiModel) setDateFromDigits(digits string) {
 	if len(digits) > 8 {
 		digits = digits[:8]
@@ -512,6 +632,15 @@ func (m *tuiModel) setDateFromDigits(digits string) {
 
 	m.dateInput.SetValue(formatDateDigits(digits))
 	m.dateInput.CursorEnd()
+}
+
+func (m *tuiModel) setManualDateFromDigits(digits string) {
+	if len(digits) > 8 {
+		digits = digits[:8]
+	}
+
+	m.manualDateInput.SetValue(formatDateDigits(digits))
+	m.manualDateInput.CursorEnd()
 }
 
 func extractDateDigits(value string) string {
@@ -789,6 +918,10 @@ func (m *tuiModel) setFocus(index int) {
 	m.periodInput.Blur()
 	m.projectInput.Blur()
 	m.taskInput.Blur()
+	m.manualDateInput.Blur()
+	m.manualProjectInput.Blur()
+	m.manualTaskInput.Blur()
+	m.manualHoursInput.Blur()
 
 	promptBlur := lipgloss.NewStyle().Foreground(mutedColor)
 	promptFocus := lipgloss.NewStyle().Foreground(accentColor).Bold(true)
@@ -799,10 +932,18 @@ func (m *tuiModel) setFocus(index int) {
 	m.periodInput.PromptStyle = promptBlur
 	m.projectInput.PromptStyle = promptBlur
 	m.taskInput.PromptStyle = promptBlur
+	m.manualDateInput.PromptStyle = promptBlur
+	m.manualProjectInput.PromptStyle = promptBlur
+	m.manualTaskInput.PromptStyle = promptBlur
+	m.manualHoursInput.PromptStyle = promptBlur
 	m.dateInput.TextStyle = textBlur
 	m.periodInput.TextStyle = textBlur
 	m.projectInput.TextStyle = textBlur
 	m.taskInput.TextStyle = textBlur
+	m.manualDateInput.TextStyle = textBlur
+	m.manualProjectInput.TextStyle = textBlur
+	m.manualTaskInput.TextStyle = textBlur
+	m.manualHoursInput.TextStyle = textBlur
 
 	switch m.focusIndex {
 	case 0:
@@ -821,7 +962,27 @@ func (m *tuiModel) setFocus(index int) {
 		m.taskInput.Focus()
 		m.taskInput.PromptStyle = promptFocus
 		m.taskInput.TextStyle = textFocus
+	case 4:
+		m.manualDateInput.Focus()
+		m.manualDateInput.PromptStyle = promptFocus
+		m.manualDateInput.TextStyle = textFocus
+	case 5:
+		m.manualProjectInput.Focus()
+		m.manualProjectInput.PromptStyle = promptFocus
+		m.manualProjectInput.TextStyle = textFocus
+	case 6:
+		m.manualTaskInput.Focus()
+		m.manualTaskInput.PromptStyle = promptFocus
+		m.manualTaskInput.TextStyle = textFocus
+	case 7:
+		m.manualHoursInput.Focus()
+		m.manualHoursInput.PromptStyle = promptFocus
+		m.manualHoursInput.TextStyle = textFocus
 	}
+}
+
+func (m tuiModel) canCycleFocusedOptions() bool {
+	return m.focusIndex == 2 || m.focusIndex == 3 || m.focusIndex == 5 || m.focusIndex == 6
 }
 
 func (m *tuiModel) applyNextOption() {
@@ -838,6 +999,18 @@ func (m *tuiModel) applyNextOption() {
 		}
 		m.taskIndex = (m.taskIndex + 1) % len(m.tasks)
 		m.taskInput.SetValue(m.tasks[m.taskIndex])
+	case 5:
+		if len(m.projects) == 0 {
+			return
+		}
+		m.manualProjectIndex = (m.manualProjectIndex + 1) % len(m.projects)
+		m.manualProjectInput.SetValue(m.projects[m.manualProjectIndex])
+	case 6:
+		if len(m.tasks) == 0 {
+			return
+		}
+		m.manualTaskIndex = (m.manualTaskIndex + 1) % len(m.tasks)
+		m.manualTaskInput.SetValue(m.tasks[m.manualTaskIndex])
 	}
 }
 
@@ -861,6 +1034,24 @@ func (m *tuiModel) applyPreviousOption() {
 			m.taskIndex = len(m.tasks) - 1
 		}
 		m.taskInput.SetValue(m.tasks[m.taskIndex])
+	case 5:
+		if len(m.projects) == 0 {
+			return
+		}
+		m.manualProjectIndex--
+		if m.manualProjectIndex < 0 {
+			m.manualProjectIndex = len(m.projects) - 1
+		}
+		m.manualProjectInput.SetValue(m.projects[m.manualProjectIndex])
+	case 6:
+		if len(m.tasks) == 0 {
+			return
+		}
+		m.manualTaskIndex--
+		if m.manualTaskIndex < 0 {
+			m.manualTaskIndex = len(m.tasks) - 1
+		}
+		m.manualTaskInput.SetValue(m.tasks[m.manualTaskIndex])
 	}
 }
 
@@ -886,6 +1077,69 @@ func (m tuiModel) startStopwatchFromInputs() (string, error) {
 	}
 
 	return "Started stopwatch for " + startedTask + ".", nil
+}
+
+func (m *tuiModel) addManualEntryFromInputs() (string, error) {
+	projectName := sanitizeTagValue(m.manualProjectInput.Value())
+	if projectName == "" {
+		return "", fmt.Errorf("project is required")
+	}
+
+	taskName := sanitizeTagValue(m.manualTaskInput.Value())
+	task, normalizedDate, hours, label, err := buildManualTask(
+		strings.TrimSpace(m.manualDateInput.Value()),
+		projectName,
+		taskName,
+		strings.TrimSpace(m.manualHoursInput.Value()),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	timesheetFile := file.TimesheetFile{Name: timesheetFilename}
+	tasklist := timesheetFile.ReadFile()
+	tasklist.AddTask(task)
+	timesheetFile.WriteFile(tasklist)
+
+	m.manualHoursInput.SetValue("")
+	return fmt.Sprintf("Added %.2fh on %s to %s.", hours, normalizedDate, label), nil
+}
+
+func buildManualTask(manualDate string, projectName string, taskName string, hoursText string) (task *todotxt.Task, normalizedDate string, hours float64, label string, err error) {
+	manualDay, err := parseFlexibleDate(manualDate)
+	if err != nil {
+		return nil, "", 0, "", fmt.Errorf("date is invalid")
+	}
+	manualDay = time.Date(manualDay.Year(), manualDay.Month(), manualDay.Day(), 0, 0, 0, 0, time.UTC)
+
+	hours, err = strconv.ParseFloat(hoursText, 64)
+	if err != nil || hours <= 0 {
+		return nil, "", 0, "", fmt.Errorf("hours must be a positive number")
+	}
+
+	normalizedDate = manualDay.Format("2006-01-02")
+	taskText := fmt.Sprintf("%s +%s", normalizedDate, projectName)
+	if taskName != "" {
+		taskText += " task:" + taskName
+	}
+	taskText += " hours:" + strconv.FormatFloat(hours, 'f', -1, 64)
+
+	task, err = todotxt.ParseTask(taskText)
+	if err != nil {
+		return nil, "", 0, "", err
+	}
+
+	task.CreatedDate = manualDay
+	task.Complete()
+	task.CompletedDate = manualDay
+	task.Original = task.String()
+
+	label = projectName
+	if taskName != "" {
+		label += "." + taskName
+	}
+
+	return task, normalizedDate, hours, label, nil
 }
 
 func stopStopwatchFromTUI() (string, error) {

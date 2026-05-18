@@ -10,6 +10,7 @@ release/
 
 # Local build output
 bin/
+tmp/
 
 # Visual Studio Code
 .vscode/

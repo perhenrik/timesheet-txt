@@ -58,6 +58,7 @@ make test      # run tests + coverage summary
 make lint      # run go fmt + go vet
 make build     # build bin/timesheet
 make release   # build release binaries (darwin/linux/windows, amd64+arm64)
+make dev-tui   # run TUI with auto-rebuild/restart via air
 ```
 
 `make release` writes binaries to `release/` with names like:
@@ -140,6 +141,13 @@ Useful keys in TUI:
 Date input accepts digits and `-`, auto-formats as `YYYY-MM-DD`, and supports flexible date entry like `2026-5-3`.
 Validation hints for date and period are shown directly under the filter row in the header.
 TUI colors adapt to your terminal theme (light/dark) and respect terminal default background.
+
+For TUI development with auto-rebuild/restart on file changes:
+
+```bash
+brew install air
+make dev-tui
+```
 
 #### List
 

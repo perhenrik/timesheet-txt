@@ -2,8 +2,9 @@ BINARY ?= timesheet
 VERSION ?= 0.2.0
 PLATFORMS := darwin linux windows
 ARCH := amd64 arm64
+AIR ?= air
 
-.PHONY: fmt vet test lint build clean release
+.PHONY: fmt vet test lint build clean release dev-tui
 
 fmt:
 	go fmt ./...
@@ -31,3 +32,7 @@ release:
 			GOOS=$$os GOARCH=$$arch go build -o release/$(BINARY)-$(VERSION)-$$os-$$arch . ; \
 		done ; \
 	done
+
+dev-tui:
+	@command -v $(AIR) >/dev/null 2>&1 || { echo "air is not installed. Install with: brew install air"; exit 1; }
+	$(AIR) --build.cmd "go build -o ./tmp/timesheet ." --build.bin "./tmp/timesheet tui"

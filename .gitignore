@@ -20,3 +20,6 @@ tmp/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Local screenshots
+Screenshot*
